@@ -2,6 +2,7 @@
   "expo": {
     "name": "FisioPlay",
     "slug": "fisioplay",
+    "owner": "izaiasr",
     "scheme": "fisioplay",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -47,6 +48,12 @@
         }
       ],
       "expo-asset"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "922f516d-16ec-4d6b-8755-738f69541536"
+      }
+    }
   }
 }
