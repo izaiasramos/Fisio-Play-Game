@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Web: pinta as laterais (fora da coluna central de largura máxima) com o fundo
+   do app, evitando faixas brancas em telas largas. */
+html,
+body,
+#root {
+  background-color: #0b1020;
+}

@@ -1,0 +1,61 @@
+{
+  "_nota": "Pranchas do jogo 'Arrastar na anatomia'. Diagramas SVG autorais (sem rótulos), renderizados por src/components/pranchas/Diagramas.tsx. Coordenadas dos alvos (x/y em 0..1, viewBox 100x150) casam com o desenho. fonte = material original FisioPlay.",
+  "pranchas": [
+    {
+      "id": "ossos-mmii",
+      "trilhaId": "anatomia",
+      "titulo": "Ossos do membro inferior",
+      "diagrama": "diag-mmii",
+      "aspecto": 0.667,
+      "alvos": [
+        { "id": "femur", "rotulo": "Fêmur", "x": 0.52, "y": 0.233 },
+        { "id": "patela", "rotulo": "Patela", "x": 0.5, "y": 0.467 },
+        { "id": "tibia", "rotulo": "Tíbia", "x": 0.465, "y": 0.72 },
+        { "id": "fibula", "rotulo": "Fíbula", "x": 0.585, "y": 0.713 }
+      ],
+      "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+    },
+    {
+      "id": "ossos-mmss",
+      "trilhaId": "anatomia",
+      "titulo": "Ossos do membro superior",
+      "diagrama": "diag-mmss",
+      "aspecto": 0.667,
+      "alvos": [
+        { "id": "escapula", "rotulo": "Escápula", "x": 0.66, "y": 0.113 },
+        { "id": "umero", "rotulo": "Úmero", "x": 0.495, "y": 0.26 },
+        { "id": "ulna", "rotulo": "Ulna", "x": 0.435, "y": 0.633 },
+        { "id": "radio", "rotulo": "Rádio", "x": 0.575, "y": 0.633 }
+      ],
+      "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+    },
+    {
+      "id": "joelho",
+      "trilhaId": "anatomia",
+      "titulo": "Articulação do joelho",
+      "diagrama": "diag-joelho",
+      "aspecto": 0.667,
+      "alvos": [
+        { "id": "femur", "rotulo": "Fêmur", "x": 0.5, "y": 0.187 },
+        { "id": "patela", "rotulo": "Patela", "x": 0.5, "y": 0.307 },
+        { "id": "tibia", "rotulo": "Tíbia", "x": 0.46, "y": 0.533 },
+        { "id": "fibula", "rotulo": "Fíbula", "x": 0.665, "y": 0.633 }
+      ],
+      "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+    },
+    {
+      "id": "coluna",
+      "trilhaId": "anatomia",
+      "titulo": "Regiões da coluna vertebral",
+      "diagrama": "diag-coluna",
+      "aspecto": 0.667,
+      "alvos": [
+        { "id": "cervical", "rotulo": "Cervical", "x": 0.465, "y": 0.148 },
+        { "id": "toracica", "rotulo": "Torácica", "x": 0.585, "y": 0.392 },
+        { "id": "lombar", "rotulo": "Lombar", "x": 0.44, "y": 0.66 },
+        { "id": "sacro", "rotulo": "Sacro", "x": 0.42, "y": 0.823 }
+      ],
+      "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+    }
+  ]
+}
