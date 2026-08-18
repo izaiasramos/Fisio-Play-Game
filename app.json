@@ -13,6 +13,9 @@
     },
     "android": {
       "package": "com.fisioplay.app",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#0B1020",
         "foregroundImage": "./assets/android-icon-foreground.png",
