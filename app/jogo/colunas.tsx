@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { MotiView } from "moti";
 import { carregarTrilha, type BancoTrilha } from "@/lib/loadTrilha";
@@ -20,13 +19,14 @@ import { useProgresso } from "@/store/useProgresso";
 import { useFeedback } from "@/lib/useFeedback";
 import { Confete } from "@/components/Confete";
 import { TextoAdaptativo } from "@/components/TextoAdaptativo";
+import { usePaddingRodape } from "@/lib/useRodape";
 import { colors } from "@/theme/tokens";
 
 type Fase = "jogando" | "fim";
 
 export default function ColunasScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const paddingRodape = usePaddingRodape();
   const { trilha } = useLocalSearchParams<{ trilha: string }>();
   const trilhaId = trilha ?? "";
   const feedback = useFeedback();
@@ -154,8 +154,7 @@ export default function ColunasScreen() {
     return (
       <ScrollView
         className="flex-1 bg-bg"
-        contentContainerClassName="px-6 pt-8"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: paddingRodape }}
       >
         <Stack.Screen options={{ title: "Resultado" }} />
         <Text className="text-3xl font-extrabold text-ink text-center">
@@ -246,8 +245,7 @@ export default function ColunasScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-6 pt-6"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: paddingRodape }}
       >
         {/* HUD */}
         <View className="flex-row justify-between items-end">

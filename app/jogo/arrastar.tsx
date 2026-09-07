@@ -23,6 +23,7 @@ import { useProgresso } from "@/store/useProgresso";
 import { useFeedback } from "@/lib/useFeedback";
 import { Confete } from "@/components/Confete";
 import { DIAGRAMAS } from "@/components/pranchas/Diagramas";
+import { usePaddingRodape } from "@/lib/useRodape";
 import { colors } from "@/theme/tokens";
 
 type Fase = "jogando" | "fim";
@@ -32,7 +33,7 @@ const IMG_W = 260;
 
 export default function ArrastarScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const paddingRodape = usePaddingRodape();
   const { trilha, prancha: pranchaParam } = useLocalSearchParams<{ trilha: string; prancha?: string }>();
   const trilhaId = trilha ?? "anatomia";
   const feedback = useFeedback();
@@ -142,8 +143,7 @@ export default function ArrastarScreen() {
     return (
       <ScrollView
         className="flex-1 bg-bg"
-        contentContainerClassName="px-6 pt-8"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: paddingRodape }}
       >
         <Stack.Screen options={{ title: "Resultado" }} />
         <Text className="text-3xl font-extrabold text-ink text-center">
@@ -196,7 +196,9 @@ export default function ArrastarScreen() {
   const Diagrama = prancha.diagrama ? DIAGRAMAS[prancha.diagrama] : undefined;
 
   return (
-    <View className="flex-1 bg-bg px-6" style={{ paddingTop: 12, paddingBottom: insets.bottom + 12 }}>
+    // Tela do arrastar não rola de propósito: o alvo precisa ficar fixo para o
+    // gesto casar com as coordenadas medidas.
+    <View className="flex-1 bg-bg px-6" style={{ paddingTop: 12, paddingBottom: paddingRodape - 16 }}>
       <Stack.Screen options={{ title: `Arrastar · ${prancha.titulo}` }} />
 
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>

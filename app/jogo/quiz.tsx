@@ -360,6 +360,7 @@ export default function QuizScreen() {
           </Text>
         </Pressable>
       )}
+      </ScrollView>
 
       {/* confete de acerto (remonta a cada acerto via key) */}
       {confeteKey > 0 && <Confete key={confeteKey} />}

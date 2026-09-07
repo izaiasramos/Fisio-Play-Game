@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FundoHalos } from "@/components/FundoHalos";
+import { usePaddingRodape } from "@/lib/useRodape";
 import { colors } from "@/theme/tokens";
 
 const APP_VERSAO = "1.0.0";
@@ -34,7 +34,7 @@ function Fonte({ nome, licenca, url, obs }: FonteProps) {
 }
 
 export default function Sobre() {
-  const insets = useSafeAreaInsets();
+  const paddingRodape = usePaddingRodape();
 
   return (
     <View className="flex-1 bg-bg">
@@ -43,7 +43,7 @@ export default function Sobre() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: insets.bottom + 28 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: paddingRodape }}
       >
         {/* AVISO MÉDICO */}
         <View style={styles.aviso} className="rounded-2xl p-4">

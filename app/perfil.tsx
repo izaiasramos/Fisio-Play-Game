@@ -11,14 +11,14 @@ import {
 } from "react-native";
 import { Stack } from "expo-router";
 import { MotiView } from "moti";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FundoHalos } from "@/components/FundoHalos";
 import { escolherFoto } from "@/lib/escolherFoto";
+import { usePaddingRodape } from "@/lib/useRodape";
 import { CORES_TEMA, MAX_MOMENTOS, usePerfil } from "@/store/usePerfil";
 import { colors } from "@/theme/tokens";
 
 export default function Perfil() {
-  const insets = useSafeAreaInsets();
+  const paddingRodape = usePaddingRodape(40);
   const {
     nome,
     frase,
@@ -71,7 +71,7 @@ export default function Perfil() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingTop: 20, paddingBottom: insets.bottom + 40, paddingHorizontal: 24 }}
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: paddingRodape, paddingHorizontal: 24 }}
         keyboardShouldPersistTaps="handled"
       >
         {/* avatar com anel pulsante */}

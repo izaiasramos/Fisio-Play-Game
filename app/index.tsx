@@ -8,10 +8,12 @@ import { listarTrilhas } from "@/lib/loadTrilha";
 import { nivelDoXp, progressoNoNivel, xpParaProximoNivel } from "@/games/gamificacao";
 import { FundoHalos } from "@/components/FundoHalos";
 import { Torcida } from "@/components/Torcida";
+import { usePaddingRodape } from "@/lib/useRodape";
 import { colors } from "@/theme/tokens";
 
 export default function Home() {
   const insets = useSafeAreaInsets();
+  const paddingRodape = usePaddingRodape();
   const router = useRouter();
   const xp = useProgresso((s) => s.xp);
   const streak = useProgresso((s) => s.streakDias);
@@ -37,7 +39,7 @@ export default function Home() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 28, paddingHorizontal: 24 }}
+        contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: paddingRodape, paddingHorizontal: 24 }}
       >
         {/* hero */}
         <MotiView
