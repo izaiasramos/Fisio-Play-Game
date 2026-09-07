@@ -89,6 +89,21 @@ verificador que roda sem UI:
 npx tsx scripts/verificar-quiz.ts    # idem para forca, memoria, colunas, vf, …
 ```
 
+O banco de conteúdo tem um verificador próprio, que trava conteúdo duplicado:
+
+```bash
+npx tsx scripts/verificar-duplicatas.ts            # falha se houver duplicação
+npx tsx scripts/verificar-duplicatas.ts --listar   # top 25 pares, p/ calibrar
+```
+
+Um conceito **pode** aparecer em mais de uma trilha, desde que cada trilha o
+aborde pelo seu recorte — "Frequência cardíaca" é controle autonômico em Cardio
+e técnica de aferição do pulso em Saúde Geral. O que o verificador reprova é a
+mesma definição repetida, porque os jogos leem todos os mesmos `itens` da trilha
+e o quiz usa `definicao` como enunciado: definição repetida vira a mesma
+pergunta em dois lugares, e definição parecida dentro de uma trilha vira
+pergunta ambígua.
+
 ## Stack
 
 React Native 0.86 · Expo SDK 57 · Expo Router · NativeWind 4 (Tailwind) ·
