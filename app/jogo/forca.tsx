@@ -29,6 +29,7 @@ import { useFeedback } from "@/lib/useFeedback";
 import { Confete } from "@/components/Confete";
 import { FundoHalos } from "@/components/FundoHalos";
 import { MonitorVital } from "@/components/forca/MonitorVital";
+import { fonteRemota } from "@/lib/imagemRemota";
 import { usePaddingRodape } from "@/lib/useRodape";
 
 type Fase = "jogando" | "fim";
@@ -165,7 +166,7 @@ export default function ForcaScreen() {
 
           {item.imagem && (
             <Image
-              source={{ uri: item.imagem }}
+              source={fonteRemota(item.imagem)}
               resizeMode="contain"
               accessibilityLabel={`Ilustração de ${item.termo}`}
               className="w-full h-52 mt-4 rounded-xl bg-white"

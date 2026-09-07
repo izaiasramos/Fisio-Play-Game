@@ -23,6 +23,7 @@ import { useFeedback } from "@/lib/useFeedback";
 import { Confete } from "@/components/Confete";
 import { FundoHalos } from "@/components/FundoHalos";
 import { TextoAdaptativo } from "@/components/TextoAdaptativo";
+import { fonteRemota } from "@/lib/imagemRemota";
 import { usePaddingRodape } from "@/lib/useRodape";
 
 type Fase = "jogando" | "fim";
@@ -200,7 +201,7 @@ export default function QuizScreen() {
                 <View key={i} className="bg-card rounded-2xl p-4 mt-3">
                   {item.imagem && (
                     <Image
-                      source={{ uri: item.imagem }}
+                      source={fonteRemota(item.imagem)}
                       resizeMode="contain"
                       accessibilityLabel={`Ilustração de ${item.termo}`}
                       className="w-full h-52 mb-1 rounded-xl bg-white"
@@ -293,7 +294,7 @@ export default function QuizScreen() {
       {itemAtual?.imagem && (
         <View className="mt-4">
           <Image
-            source={{ uri: itemAtual.imagem }}
+            source={fonteRemota(itemAtual.imagem)}
             resizeMode="contain"
             accessibilityLabel={`Ilustração de ${itemAtual.termo}`}
             className="w-full h-64 rounded-2xl bg-white"

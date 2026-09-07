@@ -23,6 +23,7 @@ import { useProgresso } from "@/store/useProgresso";
 import { useFeedback } from "@/lib/useFeedback";
 import { Confete } from "@/components/Confete";
 import { DIAGRAMAS } from "@/components/pranchas/Diagramas";
+import { fonteRemota } from "@/lib/imagemRemota";
 import { usePaddingRodape } from "@/lib/useRodape";
 import { colors } from "@/theme/tokens";
 
@@ -236,7 +237,7 @@ export default function ArrastarScreen() {
             </View>
           ) : (
             <Image
-              source={{ uri: prancha.imagem }}
+              source={fonteRemota(prancha.imagem)}
               resizeMode="contain"
               accessibilityLabel={prancha.titulo}
               style={{ width: IMG_W, height: imgH, borderRadius: 12, backgroundColor: "#fff" }}
