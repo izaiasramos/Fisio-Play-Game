@@ -8,6 +8,7 @@ import { temCasos } from "@/lib/loadCasos";
 import { temPranchas } from "@/lib/loadPranchas";
 import { gerarPergunta } from "@/lib/gerarQuiz";
 import { FundoHalos } from "@/components/FundoHalos";
+import { usePaddingRodape } from "@/lib/useRodape";
 import { colors } from "@/theme/tokens";
 
 type Jogo = {
@@ -49,6 +50,7 @@ export default function TrilhaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const trilhaId = id ?? "";
+  const paddingRodape = usePaddingRodape();
   const pontos = useProgresso((s) => s.pontosPorTrilha[trilhaId] ?? 0);
 
   const banco = useMemo<BancoTrilha | null>(() => {
@@ -83,7 +85,10 @@ export default function TrilhaScreen() {
       <Stack.Screen options={{ title: banco.trilha.nome }} />
       <FundoHalos />
 
-      <ScrollView className="flex-1" contentContainerClassName="px-6 pt-8 pb-12">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: paddingRodape }}
+      >
         {/* cabeçalho da trilha */}
         <MotiView
           from={{ opacity: 0, translateY: 12 }}

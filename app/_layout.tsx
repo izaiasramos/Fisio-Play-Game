@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { setAudioModeAsync } from "expo-audio";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import { HeaderVoltar } from "@/components/HeaderVoltar";
 import { colors } from "@/theme/tokens";
 
@@ -17,9 +17,12 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center" }}>
-      <View style={{ flex: 1, width: "100%", maxWidth: 480, backgroundColor: colors.bg }}>
-        <SafeAreaProvider>
+    // SafeAreaProvider fica na raiz de propósito: os insets são medidos em
+    // relação à posição do provider na janela, então aninhá-lo dentro do
+    // container centralizado (maxWidth 480) pode devolver bottom errado.
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg, alignItems: "center" }}>
+        <View style={{ flex: 1, width: "100%", maxWidth: 480, backgroundColor: colors.bg }}>
           <StatusBar style="light" />
           <Stack
             screenOptions={{
@@ -36,8 +39,8 @@ export default function RootLayout() {
             <Stack.Screen name="perfil" options={{ title: "Meu perfil" }} />
             <Stack.Screen name="trilha/[id]" options={{ title: "Trilha" }} />
           </Stack>
-        </SafeAreaProvider>
-      </View>
-    </GestureHandlerRootView>
+        </View>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
