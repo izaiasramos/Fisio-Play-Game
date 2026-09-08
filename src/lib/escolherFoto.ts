@@ -16,7 +16,10 @@ export async function escolherFoto({ aspecto = [1, 1] }: Opcoes = {}): Promise<s
     mediaTypes: ["images"],
     allowsEditing: true,
     aspect: aspecto,
-    quality: 0.5,
+    // 0.4 em vez de 0.5: as fotos aparecem em áreas pequenas (avatar de 68 px,
+    // tiles da torcida), a diferença não se nota, e o base64 menor reduz a
+    // chance de bater no orçamento por foto (ver lib/fotosPerfil.ts).
+    quality: 0.4,
     base64: true,
   });
 
