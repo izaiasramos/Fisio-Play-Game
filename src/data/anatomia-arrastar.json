@@ -42,60 +42,39 @@
       "trilhaId": "anatomia",
       "titulo": "Ossos do membro superior",
       "diagrama": "prancha-mmss",
-      "aspecto": 0.4695,
+      "aspecto": 0.5681,
       "alvos": [
         {
           "id": "clavicula",
           "rotulo": "Clavícula",
-          "x": 0.4732,
-          "y": 0.0947
+          "x": 0.4728,
+          "y": 0.112
         },
         {
           "id": "escapula",
           "rotulo": "Escápula",
-          "x": 0.5113,
-          "y": 0.2042
+          "x": 0.5115,
+          "y": 0.2466
         },
         {
           "id": "umero",
           "rotulo": "Úmero",
-          "x": 0.2808,
-          "y": 0.2977
+          "x": 0.2774,
+          "y": 0.3615
         },
         {
           "id": "radio",
           "rotulo": "Rádio",
-          "x": 0.1851,
-          "y": 0.5763,
+          "x": 0.1802,
+          "y": 0.7037,
           "raio": 0.08
         },
         {
           "id": "ulna",
           "rotulo": "Ulna",
-          "x": 0.1369,
-          "y": 0.6293,
+          "x": 0.1313,
+          "y": 0.7689,
           "raio": 0.08
-        },
-        {
-          "id": "carpo",
-          "rotulo": "Carpo",
-          "x": 0.0764,
-          "y": 0.7818,
-          "raio": 0.07
-        },
-        {
-          "id": "metacarpo",
-          "rotulo": "Metacarpo",
-          "x": 0.1597,
-          "y": 0.8349,
-          "raio": 0.07
-        },
-        {
-          "id": "falanges",
-          "rotulo": "Falanges",
-          "x": 0.1777,
-          "y": 0.8879,
-          "raio": 0.07
         }
       ],
       "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
@@ -171,6 +150,36 @@
         }
       ],
       "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+    },
+    {
+      "id": "ossos-mao",
+      "trilhaId": "anatomia",
+      "titulo": "Ossos da mão",
+      "diagrama": "prancha-mao",
+      "aspecto": 0.5582,
+      "alvos": [
+        {
+          "id": "carpo",
+          "rotulo": "Carpo",
+          "x": 0.1514,
+          "y": 0.2011
+        },
+        {
+          "id": "metacarpo",
+          "rotulo": "Metacarpo",
+          "x": 0.4258,
+          "y": 0.409
+        },
+        {
+          "id": "falanges",
+          "rotulo": "Falanges",
+          "x": 0.4853,
+          "y": 0.6169
+        }
+      ],
+      "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+      "urlFonte": "https://commons.wikimedia.org/wiki/File:Human_arm_bones_diagram.svg",
+      "imagemCredito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público"
     }
   ]
 }

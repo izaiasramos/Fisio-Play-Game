@@ -87,8 +87,26 @@ verificador que roda sem UI:
 
 ```bash
 npx tsx scripts/verificar-quiz.ts    # idem para forca, memoria, colunas, vf, …
+npx tsx scripts/verificar-montar.ts  # jogo "Montar o corpo" (dados + encaixe)
 npx tsx scripts/verificar-perfil.ts  # persistência das fotos do perfil
 ```
+
+O jogo **Montar o corpo** tem os tabuleiros gerados a partir das mesmas
+ilustrações de domínio público das pranchas, com cada osso extraído como peça
+própria:
+
+```bash
+python3 scripts/gerar_montar.py --inspecionar   # mostra o que casaria, sem escrever
+python3 scripts/gerar_montar.py                 # gera peças + anatomia-montar.json
+```
+
+Duas coisas valem saber sobre esse gerador. Ele identifica as peças pelo rótulo
+em inglês da ilustração (mesma lógica auditável do `gerar_pranchas.py`) e, no
+lado sem rótulo, por **espelhamento com verificação**: casa por forma e falha se
+os eixos de simetria implícitos discordarem, em vez de nomear osso errado em
+silêncio. E ele usa `pontos_do_path(..., achatar_curvas=True)`, porque a
+aproximação por pontos de controle — boa para recortar prancha — superestimaria a
+peça e o encaixe sairia torto.
 
 As fotos do perfil (avatar e "momentos") são gravadas **uma por chave** do
 AsyncStorage, e não junto do resto do perfil: no Android cada registro é lido por

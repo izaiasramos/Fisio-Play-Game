@@ -135,11 +135,19 @@ PRANCHAS: list[dict] = [
         "titulo": "Ossos do membro superior",
         "arquivo": "Human arm bones diagram.svg",
         "diagrama": "prancha-mmss",
-        # A prancha tem dois painéis: visão geral do membro à esquerda e um zoom
-        # de acidentes ósseos (epicôndilos, tubérculos, fossas) à direita. Só o
-        # painel esquerdo interessa aqui; corta na linha média da coluna, que dá
-        # um recorte natural, e descarta os hotspots do painel de detalhe.
-        "recorte": {"x1": 430, "y0": 20, "y1": 745},
+        # Dois recortes desta mesma prancha, e o motivo importa:
+        #
+        # O arquivo tem um painel de visão geral do membro à esquerda e um zoom de
+        # acidentes ósseos à direita (epicôndilos, tubérculos, fossas). x1=430
+        # corta na linha média da coluna, mantendo só o painel esquerdo.
+        #
+        # y1=610 corta ANTES do punho. Os 8 ossos rotulados não caberiam num único
+        # recorte: membro inferior/superior inteiro dá proporção perto de 1:2, e a
+        # ~200px de largura carpo, metacarpo e falanges ficam a ~20px um do outro,
+        # menos que o dedo consegue mirar. Então a mão virou a prancha "ossos-mao",
+        # com recorte próprio — ali ela ocupa a tela toda e os alvos sobram espaço.
+        # Nenhum alvo foi perdido: 5 aqui + 3 lá.
+        "recorte": {"x1": 430, "y0": 20, "y1": 610},
         "alvos": {
             "Clavicle": {"id": "clavicula", "rotulo": "Clavícula"},
             "Scapula": {
@@ -155,16 +163,28 @@ PRANCHAS: list[dict] = [
                 ),
             },
             "Humerus": {"id": "umero", "rotulo": "Úmero"},
-            # rádio e ulna correm lado a lado no antebraço; mesmo motivo do raio
-            # menor nos ossos da mão
+            # rádio e ulna correm lado a lado no antebraço, então raio menor
             "Radius": {"id": "radio", "rotulo": "Rádio", "raio": 0.08},
             "Ulna": {"id": "ulna", "rotulo": "Ulna", "raio": 0.08},
-            # Carpo, metacarpo e falanges ficam empilhados numa mão pequena: a
-            # tolerância padrão (10% da largura) faria um invadir o outro. Raio
-            # menor mantém os três jogáveis, e o anel na tela acompanha o raio.
-            "Carpus": {"id": "carpo", "rotulo": "Carpo", "raio": 0.07},
-            "Metacarpus": {"id": "metacarpo", "rotulo": "Metacarpo", "raio": 0.07},
-            "Phalanges": {"id": "falanges", "rotulo": "Falanges", "raio": 0.07},
+            # carpo/metacarpo/falanges vivem na prancha "ossos-mao"
+        },
+        "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+        "credito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público",
+    },
+    {
+        "id": "ossos-mao",
+        "trilhaId": "anatomia",
+        "titulo": "Ossos da mão",
+        # Mesma prancha do membro superior, recortada só na mão. Aproveitar o
+        # zoom é o que torna carpo/metacarpo/falanges jogáveis: no recorte do
+        # membro inteiro eles ficavam a ~20px de distância, aqui passam de 100px.
+        "arquivo": "Human arm bones diagram.svg",
+        "diagrama": "prancha-mao",
+        "recorte": {"x1": 205, "y0": 560, "y1": 745},
+        "alvos": {
+            "Carpus": {"id": "carpo", "rotulo": "Carpo"},
+            "Metacarpus": {"id": "metacarpo", "rotulo": "Metacarpo"},
+            "Phalanges": {"id": "falanges", "rotulo": "Falanges"},
         },
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público",
@@ -293,6 +313,22 @@ def texto_em_ingles(el) -> str | None:
     return txt or None
 
 
+def eh_segmento_reto(el, m: Matriz) -> tuple[Ponto, Ponto] | None:
+    """
+    Se o elemento é um segmento reto (dois pontos distintos), devolve as pontas.
+
+    Serve para separar LINHA-GUIA de BOLINHA: nas pranchas do Commons a linha é
+    um path reto (`m x,y h dx`) e a bolinha da ponta é um path com arcos, que
+    gera muitos pontos. Sem essa distinção as bolinhas entram na conta como se
+    fossem guias.
+    """
+    pts = [aplicar(m, p) for p in pontos_do_elemento(el)]
+    distintos = sorted({(round(x, 3), round(y, 3)) for x, y in pts})
+    if len(distintos) != 2:
+        return None
+    return distintos[0], distintos[1]
+
+
 def extremos_de_linha_guia(el, m: Matriz) -> tuple[Ponto, Ponto] | None:
     """As duas pontas de uma linha-guia (line ou path reto), já transformadas."""
     pts = [aplicar(m, p) for p in pontos_do_elemento(el)]
@@ -340,6 +376,7 @@ def coletar(root) -> dict:
     css = coletar_css(root)
     bb_desenho = None
     guias: list[tuple[Ponto, Ponto]] = []
+    retas: list[tuple[Ponto, Ponto]] = []
     rotulos: list[tuple[str, Ponto]] = []
 
     for el, m, _pai, tinta in caminhar(root, css=css):
@@ -361,6 +398,9 @@ def coletar(root) -> dict:
             ext = extremos_de_linha_guia(el, m)
             if ext:
                 guias.append(ext)
+            reto = eh_segmento_reto(el, m)
+            if reto:
+                retas.append(reto)
             continue
 
         if nao_pinta_nada(el):
@@ -383,6 +423,7 @@ def coletar(root) -> dict:
     return {
         "bb_desenho": bb_desenho,
         "guias": guias,
+        "retas": retas,
         "rotulos": rotulos,
         "viewbox": vb,
         "por_cor": bboxes_por_cor(root, css),
@@ -476,6 +517,82 @@ def agrupar_rotulos(
                 vistos.add(txt)
                 partes.append(txt)
         saida.append((" ".join(partes), g["pts"]))
+    return saida
+
+
+def blocos_por_coluna(
+    rotulos: list[tuple[str, Ponto]], gap: float = 34.0
+) -> list[dict]:
+    """
+    Agrupa os <text> em blocos de rótulo, por COLUNA.
+
+    Pranchas didáticas alinham todos os rótulos em uma ou duas colunas de x fixo
+    ("Anterior cruciate" / "ligament" empilhados). Agrupando por x idêntico e
+    depois por proximidade vertical, cada bloco fica sendo um rótulo inteiro, e o
+    y da PRIMEIRA linha é o que a linha-guia acompanha.
+    """
+    colunas: dict[float, list[tuple[str, Ponto]]] = {}
+    for txt, p in rotulos:
+        colunas.setdefault(round(p[0], 1), []).append((txt, p))
+
+    blocos: list[dict] = []
+    for cx, itens in colunas.items():
+        itens.sort(key=lambda it: it[1][1])
+        atual: list[tuple[str, Ponto]] = []
+        for item in itens:
+            if atual and item[1][1] - atual[-1][1][1] > gap:
+                blocos.append({"coluna": cx, "y": atual[0][1][1],
+                               "texto": " ".join(t for t, _ in atual)})
+                atual = []
+            atual.append(item)
+        if atual:
+            blocos.append({"coluna": cx, "y": atual[0][1][1],
+                           "texto": " ".join(t for t, _ in atual)})
+    return blocos
+
+
+def hotspots_por_coluna(coleta: dict) -> list[tuple[str, Ponto]]:
+    """
+    Pareamento EXATO para pranchas de rótulos em coluna com linha-guia reta.
+
+    Nada de heurística geométrica aqui — usa a construção do arquivo:
+
+      1. cada linha-guia é um segmento reto, e uma das pontas encosta na coluna
+         de rótulos: essa é a ponta do rótulo, a outra é o hotspot. (A direção do
+         path não serve como regra: nesta prancha do joelho 13 linhas saem do
+         rótulo para a estrutura e 1 faz o contrário.)
+      2. o rótulo é o bloco daquela coluna com o y mais próximo do y da linha.
+
+    É determinístico, e é o que permite mapear LCA, LCP, meniscos e colaterais
+    sem chutar — o que o pareamento por distância errava.
+    """
+    blocos = blocos_por_coluna(coleta["rotulos"])
+    if not blocos:
+        raise RuntimeError("nenhum rótulo encontrado para pareamento por coluna")
+    colunas = sorted({b["coluna"] for b in blocos})
+
+    saida: list[tuple[str, Ponto]] = []
+    for a, b in coleta["retas"]:
+        # ponta do rótulo = a que fica mais perto de alguma coluna de texto
+        cand = []
+        for ponta, outra in ((a, b), (b, a)):
+            for cx in colunas:
+                cand.append((abs(ponta[0] - cx), cx, ponta, outra))
+        dist, cx, ponta_rotulo, hotspot = min(cand, key=lambda c: c[0])
+
+        na_coluna = [x for x in blocos if x["coluna"] == cx]
+        bloco = min(na_coluna, key=lambda x: abs(x["y"] - ponta_rotulo[1]))
+        saida.append((bloco["texto"], hotspot))
+
+    # duas linhas não deveriam cair no mesmo rótulo
+    vistos: dict[str, Ponto] = {}
+    for rotulo, p in saida:
+        if rotulo in vistos:
+            print(
+                f'  ⚠  rótulo "{rotulo}" pareado com duas linhas-guia '
+                f"({vistos[rotulo]} e {p}) — confira no overlay"
+            )
+        vistos[rotulo] = p
     return saida
 
 
@@ -738,6 +855,8 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     coleta = coletar(root)
     if cfg.get("alvos_por_cor"):
         hotspots = hotspots_por_cor(cfg, coleta)
+    elif cfg.get("pareamento") == "colunas":
+        hotspots = hotspots_por_coluna(coleta)
     else:
         hotspots = resolver_hotspots(coleta)
 

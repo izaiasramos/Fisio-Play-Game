@@ -7,23 +7,14 @@
 //     Commons), com rótulos e linhas-guia removidos por scripts/gerar_pranchas.py.
 //     É o caminho preferido: forma realista de verdade. Os SVGs ficam em ./svg/.
 //
-//  2. `diag-*` — diagramas esquemáticos autorais, herdados. Ossos longos são
-//     desenhados como cápsula (linha grossa + epífises), o que lê como "bastão"
-//     e não como osso. Vão sendo substituídos pelos `prancha-*`.
+//  2. `diag-*` — esquemático autoral, herdado. Só a coluna ainda usa: a prancha
+//     equivalente do Commons é um PNG de 1,26 MB embutido em base64, que não
+//     compensa no bundle (ver a nota no fim de scripts/gerar_pranchas.py).
+//     Os de membro inferior, superior e joelho foram removidos — desenhavam osso
+//     longo como cápsula (linha grossa + epífises), que lia como "bastão".
 
 import type { FC } from "react";
-import Svg, {
-  Circle,
-  Defs,
-  Ellipse,
-  G,
-  Line,
-  LinearGradient,
-  Polygon,
-  Rect,
-  Stop,
-  SvgXml,
-} from "react-native-svg";
+import Svg, { Defs, G, LinearGradient, Rect, Stop, SvgXml } from "react-native-svg";
 import { colors } from "@/theme/tokens";
 import { SVG_PRANCHA_JOELHO } from "./svg/prancha-joelho";
 import { SVG_PRANCHA_MMII } from "./svg/prancha-mmii";
@@ -42,98 +33,6 @@ function DefsOsso() {
         <Stop offset="1" stopColor="#E4CE97" />
       </LinearGradient>
     </Defs>
-  );
-}
-
-/** Osso longo = cápsula (linha grossa com pontas arredondadas) + epífises. */
-function Capsula({
-  x1,
-  y1,
-  x2,
-  y2,
-  w,
-  knob = 0.72,
-}: {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-  w: number;
-  knob?: number;
-}) {
-  return (
-    <G>
-      {/* glow neon */}
-      <Line x1={x1} y1={y1} x2={x2} y2={y2} stroke={colors.accent} strokeOpacity={0.22} strokeWidth={w + 3.5} strokeLinecap="round" />
-      {/* contorno */}
-      <Line x1={x1} y1={y1} x2={x2} y2={y2} stroke={OSSO_OUTLINE} strokeWidth={w} strokeLinecap="round" />
-      {/* corpo */}
-      <Line x1={x1} y1={y1} x2={x2} y2={y2} stroke="url(#osso)" strokeWidth={w - 1.4} strokeLinecap="round" />
-      <Circle cx={x1} cy={y1} r={w * knob} fill="url(#osso)" stroke={OSSO_OUTLINE} strokeWidth={0.6} />
-      <Circle cx={x2} cy={y2} r={w * knob} fill="url(#osso)" stroke={OSSO_OUTLINE} strokeWidth={0.6} />
-    </G>
-  );
-}
-
-/** MMII — fêmur, patela, tíbia, fíbula. */
-function DiagramaMMII({ width, height }: DiagProps) {
-  return (
-    <Svg width={width} height={height} viewBox="0 0 100 150">
-      <DefsOsso />
-      {/* Fêmur */}
-      <Capsula x1={54} y1={8} x2={50} y2={62} w={9} />
-      {/* Patela */}
-      <G>
-        <Ellipse cx={50} cy={70} rx={5.5} ry={6.5} fill={colors.accent} opacity={0.18} />
-        <Ellipse cx={50} cy={70} rx={4.6} ry={5.6} fill="url(#osso)" stroke={OSSO_OUTLINE} strokeWidth={0.7} />
-      </G>
-      {/* Tíbia */}
-      <Capsula x1={47} y1={80} x2={46} y2={136} w={8} />
-      {/* Fíbula */}
-      <Capsula x1={58} y1={82} x2={59} y2={133} w={4} knob={0.9} />
-    </Svg>
-  );
-}
-
-/** MMSS — escápula, úmero, rádio, ulna. */
-function DiagramaMMSS({ width, height }: DiagProps) {
-  return (
-    <Svg width={width} height={height} viewBox="0 0 100 150">
-      <DefsOsso />
-      {/* Escápula (triângulo) */}
-      <G>
-        <Polygon points="58,8 76,12 66,30" fill={colors.accent} opacity={0.16} />
-        <Polygon points="59,10 74,13 66,28" fill="url(#osso)" stroke={OSSO_OUTLINE} strokeWidth={0.7} />
-      </G>
-      {/* Úmero */}
-      <Capsula x1={50} y1={16} x2={49} y2={62} w={8} />
-      {/* Ulna (medial, com olécrano) */}
-      <Capsula x1={44} y1={66} x2={43} y2={124} w={6} knob={0.95} />
-      {/* Rádio (lateral) */}
-      <Capsula x1={57} y1={68} x2={58} y2={122} w={5} />
-    </Svg>
-  );
-}
-
-/** Joelho — fêmur (côndilos), patela, tíbia, fíbula. */
-function DiagramaJoelho({ width, height }: DiagProps) {
-  return (
-    <Svg width={width} height={height} viewBox="0 0 100 150">
-      <DefsOsso />
-      {/* Fêmur: haste + côndilos */}
-      <Capsula x1={49} y1={6} x2={50} y2={24} w={10} />
-      <Capsula x1={41} y1={28} x2={59} y2={28} w={13} knob={0.9} />
-      {/* Patela */}
-      <G>
-        <Ellipse cx={50} cy={46} rx={7.5} ry={8.5} fill={colors.accent} opacity={0.18} />
-        <Ellipse cx={50} cy={46} rx={6.4} ry={7.4} fill="url(#osso)" stroke={OSSO_OUTLINE} strokeWidth={0.8} />
-      </G>
-      {/* Tíbia: platô + haste */}
-      <Capsula x1={40} y1={60} x2={56} y2={60} w={9} knob={0.7} />
-      <Capsula x1={47} y1={62} x2={46} y2={132} w={11} />
-      {/* Fíbula (lateral) */}
-      <Capsula x1={66} y1={62} x2={67} y2={128} w={5} knob={1.1} />
-    </Svg>
   );
 }
 

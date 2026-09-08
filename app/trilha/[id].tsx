@@ -5,6 +5,7 @@ import { MotiView } from "moti";
 import { useProgresso } from "@/store/useProgresso";
 import { carregarTrilha, type BancoTrilha } from "@/lib/loadTrilha";
 import { temCasos } from "@/lib/loadCasos";
+import { temTabuleiros } from "@/lib/loadMontar";
 import { temPranchas } from "@/lib/loadPranchas";
 import { gerarPergunta } from "@/lib/gerarQuiz";
 import { FundoHalos } from "@/components/FundoHalos";
@@ -12,7 +13,7 @@ import { usePaddingRodape } from "@/lib/useRodape";
 import { colors } from "@/theme/tokens";
 
 type Jogo = {
-  rota: "/jogo/quiz" | "/jogo/forca" | "/jogo/memoria" | "/jogo/colunas" | "/jogo/completar" | "/jogo/vf" | "/jogo/arrastar" | "/jogo/conduta";
+  rota: "/jogo/quiz" | "/jogo/forca" | "/jogo/memoria" | "/jogo/colunas" | "/jogo/completar" | "/jogo/vf" | "/jogo/arrastar" | "/jogo/montar" | "/jogo/conduta";
   icone: string;
   nome: string;
   desc: string;
@@ -46,6 +47,15 @@ const ARRASTAR_JOGO: Jogo = {
   cor: "#F472B6",
 };
 
+/** Jogo extra, exibido só nas trilhas que têm regiões para montar. */
+const MONTAR_JOGO: Jogo = {
+  rota: "/jogo/montar",
+  icone: "🧍",
+  nome: "Montar o corpo",
+  desc: "Encaixe osso por osso, região por região",
+  cor: "#FB923C",
+};
+
 export default function TrilhaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -66,6 +76,7 @@ export default function TrilhaScreen() {
   const jogos = useMemo<Jogo[]>(() => {
     const lista = [...JOGOS];
     if (temPranchas(trilhaId)) lista.push(ARRASTAR_JOGO);
+    if (temTabuleiros(trilhaId)) lista.push(MONTAR_JOGO);
     if (temCasos(trilhaId)) lista.push(CONDUTA_JOGO);
     return lista;
   }, [trilhaId]);

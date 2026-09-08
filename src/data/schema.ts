@@ -150,6 +150,50 @@ export type AlvoAnatomia = {
   raio?: number;
 };
 
+/** Sistemas do corpo cobertos pelo jogo "Montar o corpo". */
+export type SistemaCorpo = "ossos" | "veias" | "nervos" | "orgaos";
+
+/**
+ * Uma peça do jogo "Montar o corpo" — um osso (ou estrutura) isolado, que o
+ * jogador arrasta até o lugar dele.
+ *
+ * `destino` e `tamanho` são frações do tabuleiro (0..1), medidos pelo gerador a
+ * partir da bbox real da peça. A geometria vive em
+ * `src/components/pranchas/svg/montar-*.ts`, indexada por `id`.
+ */
+export type PecaCorpo = {
+  id: string;
+  nome: string;
+  /** centro correto da peça, em fração do tabuleiro */
+  destino: { x: number; y: number };
+  /** tamanho da peça, em fração do tabuleiro */
+  tamanho: { w: number; h: number };
+};
+
+/**
+ * Um tabuleiro do jogo "Montar o corpo": uma região do corpo a ser montada.
+ * O jogo avança por regiões (`ordem`) — uma perna, depois a outra, e assim por
+ * diante.
+ */
+export type TabuleiroCorpo = {
+  id: string;
+  /** posição na progressão (1 = primeira região) */
+  ordem: number;
+  trilhaId: string;
+  sistema: SistemaCorpo;
+  titulo: string;
+  subtitulo: string;
+  /** chave do módulo de SVGs das peças (ver components/pranchas/Pecas.ts) */
+  modulo: string;
+  lado?: "esquerdo" | "direito";
+  /** proporção largura/altura do tabuleiro */
+  aspecto: number;
+  pecas: PecaCorpo[];
+  fonte: string;
+  urlFonte?: string;
+  imagemCredito?: string;
+};
+
 /** Uma prancha (imagem com vários alvos) do jogo "Arrastar na anatomia". */
 export type PranchaAnatomia = {
   id: string;
