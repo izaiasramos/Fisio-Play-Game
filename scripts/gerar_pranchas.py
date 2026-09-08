@@ -77,6 +77,10 @@ PRANCHAS: list[dict] = [
         "titulo": "Ossos do membro inferior",
         "arquivo": "Human leg bones labeled.svg",
         "diagrama": "prancha-mmii",
+        # A prancha completa (crista ilíaca aos dedos) dá proporção ~1:3, que não
+        # cabe em tela de celular sem virar um filete. Enquadra do acetábulo aos
+        # maléolos: mantém os 4 alvos com contexto de quadril e tornozelo.
+        "recorte": {"y0": 72, "y1": 448},
         "alvos": {
             "Femur": ("femur", "Fêmur"),
             "Patella": ("patela", "Patela"),
@@ -251,8 +255,22 @@ def resolver_hotspots(coleta: dict) -> list[tuple[str, Ponto]]:
 DESCARTAR = {"text", "switch", "title", "desc", "metadata", "marker", "foreignObject"}
 
 
-def limpar(root) -> None:
-    """Remove rótulos, marcação vermelha e metadados, in-place."""
+def fora_do_recorte(el, m: Matriz, recorte: tuple[float, float, float, float]) -> bool:
+    """True se o elemento não encosta na área recortada (não seria visto)."""
+    bb = bbox([aplicar(m, p) for p in pontos_do_elemento(el)])
+    if bb is None:
+        return False
+    x0, y0, x1, y1 = recorte
+    return bb[2] < x0 or bb[0] > x1 or bb[3] < y0 or bb[1] > y1
+
+
+def limpar(root, recorte: tuple[float, float, float, float]) -> None:
+    """
+    Remove rótulos, marcação vermelha, metadados e — importante para o bundle —
+    a geometria que ficou fora do recorte. Sem isso os ossos do pé continuariam
+    no arquivo, invisíveis, pesando no bundle e no tempo de render.
+    """
+    # 1) o que sai por natureza (texto, vermelho, metadado)
     for pai in list(root.iter()):
         for filho in list(pai):
             t = tag_de(filho)
@@ -263,11 +281,30 @@ def limpar(root) -> None:
             elif not isinstance(filho.tag, str):  # comentários / PI
                 pai.remove(filho)
 
-    # <defs> que ficou vazio só ocupa espaço
-    for pai in list(root.iter()):
-        for filho in list(pai):
-            if tag_de(filho) == "defs" and len(filho) == 0:
-                pai.remove(filho)
+    # 2) o que sai por estar fora do enquadramento (precisa do transform do pai,
+    #    então percorre de novo já com a árvore limpa)
+    descartar = []
+    for el, m, pai in caminhar(root):
+        if pai is None or tag_de(el) not in TAGS_GEOMETRIA:
+            continue
+        if fora_do_recorte(el, m, recorte):
+            descartar.append((pai, el))
+    for pai, el in descartar:
+        pai.remove(el)
+
+    # 3) grupos e defs que ficaram vazios
+    for _ in range(4):  # poda em cascata (grupo vazio dentro de grupo vazio)
+        vazios = []
+        for pai in list(root.iter()):
+            for filho in list(pai):
+                if tag_de(filho) in ("g", "defs") and len(filho) == 0:
+                    vazios.append((pai, filho))
+        if not vazios:
+            break
+        for pai, filho in vazios:
+            pai.remove(filho)
+
+    return len(descartar)
 
 
 def encolher_numeros(svg: str) -> str:
