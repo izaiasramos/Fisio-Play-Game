@@ -1,5 +1,5 @@
 {
-  "_nota": "Pranchas do jogo 'Arrastar na anatomia'. Diagramas SVG autorais (sem rótulos), renderizados por src/components/pranchas/Diagramas.tsx. Coordenadas dos alvos (x/y em 0..1, viewBox 100x150) casam com o desenho. fonte = material original FisioPlay.",
+  "_nota": "Pranchas do jogo 'Arrastar na anatomia', renderizadas por src/components/pranchas/Diagramas.tsx. Alvos em x/y de 0..1 relativos ao desenho. Dois tipos: 'prancha-*' = ilustração real de domínio público do Wikimedia Commons com rótulos removidos (gerada por scripts/gerar_pranchas.py — NÃO editar os alvos à mão, rode o script); 'diag-*' = esquemático autoral legado, em substituição.",
   "pranchas": [
     {
       "id": "ossos-mmii",

@@ -317,6 +317,27 @@ def encolher_numeros(svg: str) -> str:
     return re.sub(r"-?\d+\.\d{3,}", corta, svg)
 
 
+# Atributos que não afetam o render da prancha: identificadores do editor de
+# origem e herança de fonte (não sobrou texto nenhum aqui).
+ATRIBUTOS_INUTEIS = (
+    "id",
+    "overflow",
+    "version",
+    "font-family",
+    "font-size",
+    "xml:space",
+    "enable-background",
+)
+
+
+def podar_atributos(root) -> None:
+    for el in root.iter():
+        if el is root:
+            continue
+        for attr in ATRIBUTOS_INUTEIS:
+            el.attrib.pop(attr, None)
+
+
 def com_margem(bb: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
     """Aplica a folga visual em volta do desenho."""
     x0, y0, x1, y1 = bb
@@ -333,6 +354,7 @@ def serializar(root, recorte: tuple[float, float, float, float]):
     root.attrib.pop("width", None)
     root.attrib.pop("height", None)
 
+    podar_atributos(root)
     ET.register_namespace("", SVG_NS)
     bruto = ET.tostring(root, encoding="unicode")
     bruto = re.sub(r"\s*\n\s*", "", bruto)
