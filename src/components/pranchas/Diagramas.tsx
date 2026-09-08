@@ -1,8 +1,15 @@
-// Diagramas anatômicos autorais (react-native-svg) para o jogo "Arrastar na
-// anatomia". Esquemáticos e SEM rótulos: cada estrutura é desenhada numa
-// posição conhecida, que casa com as coordenadas dos alvos em anatomia-arrastar.json.
-// viewBox padrão 100x150 (aspecto 0.667). Estilo: osso marfim com gradiente +
-// rim de glow neon (accent).
+// Pranchas do jogo "Arrastar na anatomia" — todas SEM rótulos, com cada
+// estrutura numa posição conhecida que casa com os alvos de anatomia-arrastar.json.
+//
+// Dois tipos convivem aqui:
+//
+//  1. `prancha-*` — ilustração anatômica real de domínio público (Wikimedia
+//     Commons), com rótulos e linhas-guia removidos por scripts/gerar_pranchas.py.
+//     É o caminho preferido: forma realista de verdade. Os SVGs ficam em ./svg/.
+//
+//  2. `diag-*` — diagramas esquemáticos autorais, herdados. Ossos longos são
+//     desenhados como cápsula (linha grossa + epífises), o que lê como "bastão"
+//     e não como osso. Vão sendo substituídos pelos `prancha-*`.
 
 import type { FC } from "react";
 import Svg, {
@@ -15,8 +22,10 @@ import Svg, {
   Polygon,
   Rect,
   Stop,
+  SvgXml,
 } from "react-native-svg";
 import { colors } from "@/theme/tokens";
+import { SVG_PRANCHA_MMII } from "./svg/prancha-mmii";
 
 const OSSO_OUTLINE = "#C9B27A";
 
@@ -172,8 +181,21 @@ function DiagramaColuna({ width, height }: DiagProps) {
   );
 }
 
+/**
+ * Embrulha um SVG gerado (string) num componente de prancha. O viewBox já vem
+ * recortado no desenho, então basta mandar a caixa que a tela reservou.
+ */
+function daString(xml: string): FC<DiagProps> {
+  return function PranchaGerada({ width, height }: DiagProps) {
+    return <SvgXml xml={xml} width={width} height={height} />;
+  };
+}
+
 /** Registro de diagramas por chave (usado pela tela do jogo e pela prancha.diagrama). */
 export const DIAGRAMAS: Record<string, FC<DiagProps>> = {
+  // pranchas realistas (domínio público, geradas por script)
+  "prancha-mmii": daString(SVG_PRANCHA_MMII),
+  // esquemáticos autorais (legado, em substituição)
   "diag-mmii": DiagramaMMII,
   "diag-mmss": DiagramaMMSS,
   "diag-joelho": DiagramaJoelho,

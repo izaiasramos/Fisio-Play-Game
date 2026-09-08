@@ -29,8 +29,17 @@ import { colors } from "@/theme/tokens";
 
 type Fase = "jogando" | "fim";
 
-/** Largura fixa da imagem (mantém o drag curto e sem clipping de scroll). */
-const IMG_W = 260;
+/**
+ * Encaixa a prancha na caixa disponível preservando a proporção (tipo "contain").
+ *
+ * Pranchas anatômicas reais são altas: um membro inferior inteiro fica perto de
+ * 1:2,3. Fixar a largura (como era antes, em 260px) estourava a altura e cortava
+ * o desenho, então o limite tem que vir dos DOIS lados.
+ */
+function encaixar(caixaW: number, caixaH: number, aspecto: number) {
+  const largura = Math.min(caixaW, caixaH * aspecto);
+  return { largura, altura: largura / aspecto };
+}
 
 export default function ArrastarScreen() {
   const router = useRouter();
@@ -85,7 +94,11 @@ export default function ArrastarScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prancha]);
 
-  const imgH = prancha ? IMG_W / prancha.aspecto : 0;
+  // caixa que a tela reservou para a prancha (medida no layout)
+  const [caixa, setCaixa] = useState({ w: 0, h: 0 });
+  const { largura: imgW, altura: imgH } = prancha
+    ? encaixar(caixa.w, caixa.h, prancha.aspecto)
+    : { largura: 0, altura: 0 };
   const total = prancha ? prancha.alvos.length : 0;
 
   function finalizar(resolvidosFinais: number, errosFinais: number) {
@@ -226,21 +239,27 @@ export default function ArrastarScreen() {
       <Text className="text-ink text-base font-bold mt-2">{prancha.titulo}</Text>
       <Text className="text-muted text-xs">Arraste cada nome até o osso certo</Text>
 
-      {/* imagem + alvos */}
-      <View className="items-center mt-3">
-        <View ref={imgRef} style={{ width: IMG_W, height: imgH }}>
+      {/* imagem + alvos — ocupa a sobra da tela, e a prancha se encaixa dentro */}
+      <View
+        className="flex-1 items-center justify-center mt-3"
+        onLayout={(e) => {
+          const { width, height } = e.nativeEvent.layout;
+          setCaixa((c) => (c.w === width && c.h === height ? c : { w: width, h: height }));
+        }}
+      >
+        <View ref={imgRef} style={{ width: imgW, height: imgH }}>
           {Diagrama ? (
             <View
-              style={{ width: IMG_W, height: imgH, borderRadius: 12, backgroundColor: colors.surface, overflow: "hidden" }}
+              style={{ width: imgW, height: imgH, borderRadius: 12, backgroundColor: colors.surface, overflow: "hidden" }}
             >
-              <Diagrama width={IMG_W} height={imgH} />
+              {imgW > 0 && <Diagrama width={imgW} height={imgH} />}
             </View>
           ) : (
             <Image
               source={fonteRemota(prancha.imagem)}
               resizeMode="contain"
               accessibilityLabel={prancha.titulo}
-              style={{ width: IMG_W, height: imgH, borderRadius: 12, backgroundColor: "#fff" }}
+              style={{ width: imgW, height: imgH, borderRadius: 12, backgroundColor: "#fff" }}
             />
           )}
           {/* anéis-alvo (não resolvidos) */}
@@ -252,7 +271,7 @@ export default function ArrastarScreen() {
                 pointerEvents="none"
                 style={[
                   styles.alvoRing,
-                  { left: a.x * IMG_W - 15, top: a.y * imgH - 15 },
+                  { left: a.x * imgW - 15, top: a.y * imgH - 15 },
                 ]}
               />
             );
@@ -264,7 +283,7 @@ export default function ArrastarScreen() {
               <View
                 key={a.id}
                 pointerEvents="none"
-                style={[styles.pilulaOk, { left: a.x * IMG_W - 44, top: a.y * imgH - 13 }]}
+                style={[styles.pilulaOk, { left: a.x * imgW - 44, top: a.y * imgH - 13 }]}
               >
                 <Text className="text-white text-[11px] font-bold" numberOfLines={1}>
                   {a.rotulo}
@@ -275,10 +294,13 @@ export default function ArrastarScreen() {
         </View>
       </View>
 
-      {/* crédito / fonte */}
-      {prancha.imagem && prancha.imagemCredito ? (
+      {/* crédito / fonte — vale tanto para imagem remota quanto para prancha gerada */}
+      {prancha.imagemCredito ? (
         <Pressable
-          onPress={() => prancha.imagemFonte && Linking.openURL(prancha.imagemFonte).catch(() => {})}
+          onPress={() => {
+            const url = prancha.imagemFonte ?? prancha.urlFonte;
+            if (url) Linking.openURL(url).catch(() => {});
+          }}
           className="mt-1 self-center active:opacity-60"
         >
           <Text className="text-muted text-[10px]">Imagem: {prancha.imagemCredito} · Commons ↗</Text>
@@ -287,8 +309,8 @@ export default function ArrastarScreen() {
         <Text className="text-muted text-[10px] mt-1 self-center">{prancha.fonte}</Text>
       )}
 
-      {/* banco de chips */}
-      <View className="flex-1 justify-end">
+      {/* banco de chips — altura natural; a sobra da tela é da prancha */}
+      <View className="mt-2">
         {pendentes.length > 0 ? (
           <View className="flex-row flex-wrap justify-center" style={{ gap: 10 }}>
             {pendentes.map((chip) => (

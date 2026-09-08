@@ -317,12 +317,16 @@ def encolher_numeros(svg: str) -> str:
     return re.sub(r"-?\d+\.\d{3,}", corta, svg)
 
 
-def serializar(root, recorte: tuple[float, float, float, float]) -> str:
+def com_margem(bb: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    """Aplica a folga visual em volta do desenho."""
+    x0, y0, x1, y1 = bb
+    folga = max(x1 - x0, y1 - y0) * MARGEM
+    return (x0 - folga, y0 - folga, x1 + folga, y1 + folga)
+
+
+def serializar(root, recorte: tuple[float, float, float, float]):
     x0, y0, x1, y1 = recorte
     w, h = x1 - x0, y1 - y0
-    folga = max(w, h) * MARGEM
-    x0, y0 = x0 - folga, y0 - folga
-    w, h = w + 2 * folga, h + 2 * folga
 
     root.set("viewBox", f"{x0:g} {y0:g} {w:g} {h:g}")
     # sem width/height o SvgXml respeita o tamanho que a tela mandar
@@ -387,6 +391,22 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     for rotulo, p in hotspots:
         print(f"    {rotulo:22} -> ({p[0]:7.2f}, {p[1]:7.2f})")
 
+    # enquadramento: bbox do desenho, com os overrides de ergonomia do catálogo
+    ov = cfg.get("recorte") or {}
+    bb = (
+        ov.get("x0", bb[0]),
+        ov.get("y0", bb[1]),
+        ov.get("x1", bb[2]),
+        ov.get("y1", bb[3]),
+    )
+    if ov:
+        print(f"  recorte ajustado: {tuple(round(v, 1) for v in bb)}")
+    for rotulo, (px, py) in hotspots:
+        if not (bb[0] <= px <= bb[2] and bb[1] <= py <= bb[3]):
+            raise RuntimeError(
+                f'alvo "{rotulo}" em ({px:.1f},{py:.1f}) caiu fora do recorte {bb}'
+            )
+
     if inspecionar:
         print("  (modo inspeção: nada foi escrito)")
         return None
@@ -403,11 +423,13 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     if sobrando:
         print(f"  (ignorando rótulos sem mapeamento: {sorted(sobrando)})")
 
-    limpar(root)
-    svg, aspecto = serializar(root, bb)
+    recorte = com_margem(bb)
+    removidos = limpar(root, recorte)
+    svg, aspecto = serializar(root, recorte)
+    print(f"  geometria fora do enquadramento removida: {removidos} elemento(s)")
 
-    x0, y0 = float(root.get("viewBox").split()[0]), float(root.get("viewBox").split()[1])
-    vw, vh = float(root.get("viewBox").split()[2]), float(root.get("viewBox").split()[3])
+    vb = [float(v) for v in root.get("viewBox").split()]
+    x0, y0, vw, vh = vb
 
     alvos = []
     for rotulo_en, (px, py) in hotspots:

@@ -6,31 +6,31 @@
       "trilhaId": "anatomia",
       "titulo": "Ossos do membro inferior",
       "diagrama": "prancha-mmii",
-      "aspecto": 0.335,
+      "aspecto": 0.4423,
       "alvos": [
         {
           "id": "femur",
           "rotulo": "Fêmur",
-          "x": 0.2428,
-          "y": 0.3516
+          "x": 0.2347,
+          "y": 0.2877
         },
         {
           "id": "patela",
           "rotulo": "Patela",
-          "x": 0.3213,
-          "y": 0.5506
+          "x": 0.3157,
+          "y": 0.5588
         },
         {
           "id": "tibia",
           "rotulo": "Tíbia",
-          "x": 0.3661,
-          "y": 0.6576
+          "x": 0.3619,
+          "y": 0.7046
         },
         {
           "id": "fibula",
           "rotulo": "Fíbula",
-          "x": 0.2989,
-          "y": 0.7327
+          "x": 0.2925,
+          "y": 0.8069
         }
       ],
       "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
