@@ -106,35 +106,37 @@
       "id": "joelho",
       "trilhaId": "anatomia",
       "titulo": "Articulação do joelho",
-      "diagrama": "diag-joelho",
-      "aspecto": 0.667,
+      "diagrama": "prancha-joelho",
+      "aspecto": 0.5746,
       "alvos": [
         {
           "id": "femur",
           "rotulo": "Fêmur",
-          "x": 0.5,
-          "y": 0.187
+          "x": 0.3023,
+          "y": 0.1489
         },
         {
           "id": "patela",
           "rotulo": "Patela",
-          "x": 0.5,
-          "y": 0.307
-        },
-        {
-          "id": "tibia",
-          "rotulo": "Tíbia",
-          "x": 0.46,
-          "y": 0.533
+          "x": 0.8294,
+          "y": 0.2693
         },
         {
           "id": "fibula",
           "rotulo": "Fíbula",
-          "x": 0.665,
-          "y": 0.633
+          "x": 0.2226,
+          "y": 0.8793
+        },
+        {
+          "id": "tibia",
+          "rotulo": "Tíbia",
+          "x": 0.5591,
+          "y": 0.9461
         }
       ],
-      "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+      "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+      "urlFonte": "https://commons.wikimedia.org/wiki/File:Knee_diagram.svg",
+      "imagemCredito": "Mysid · Wikimedia Commons · domínio público"
     },
     {
       "id": "coluna",

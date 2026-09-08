@@ -111,7 +111,21 @@ PRANCHAS: list[dict] = [
         "titulo": "Articulação do joelho",
         "arquivo": "Knee diagram.svg",
         "diagrama": "prancha-joelho",
-        "alvos": {},
+        # Esta prancha tem 13 rótulos, vários deles ligamentos vizinhos (LCA/LCP,
+        # menisco, cartilagem) com linhas-guia curtas saindo dos DOIS lados. O
+        # pareamento automático texto↔linha erra nesses casos, e ligamento trocado
+        # num app de estudo ensina errado — pior que desenho feio.
+        #
+        # Então aqui entram só os 4 alvos cuja linha-guia é longa, única e
+        # inequívoca (os mesmos 4 do diagrama antigo, agora com desenho real).
+        # Os ligamentos ficam para uma rodada com revisão de fisioterapeuta,
+        # que o ROADMAP já prevê na Fase 6.
+        "alvos": {
+            "Femur": {"id": "femur", "rotulo": "Fêmur"},
+            "Patella": {"id": "patela", "rotulo": "Patela"},
+            "Tibia": {"id": "tibia", "rotulo": "Tíbia"},
+            "Fibula": {"id": "fibula", "rotulo": "Fíbula"},
+        },
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "Mysid · Wikimedia Commons · domínio público",
     },
@@ -155,6 +169,30 @@ PRANCHAS: list[dict] = [
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público",
     },
+    # --- COLUNA VERTEBRAL: pendente, e o motivo fica registrado -----------------
+    #
+    # "Spinal column curvature numbered.svg" seria ideal: vista lateral, coluna
+    # em gravura realista, cada região numa FAIXA COLORIDA numerada de 1 a 4
+    # (cervical/torácica/lombar/sacral) — bastaria remover os números.
+    #
+    # O problema é que o arquivo não é vetor de verdade: a coluna é um PNG de
+    # ~1,26 MB embutido em base64 (<image xlink:href="data:image/png;base64,...">),
+    # e só as faixas e a silhueta são vetor. Gerar a prancha dá um módulo de
+    # 1,26 MB para o bundle, sem nenhum ganho de nitidez — o desenho é raster
+    # de qualquer jeito.
+    #
+    # Caminhos possíveis, se valer a pena depois:
+    #   1. extrair o PNG embutido (que já vem SEM números e sem faixas),
+    #      reamostrar para ~300px de largura e empacotar em assets/pranchas/ —
+    #      exige suportar asset local no schema, que hoje só tem `diagrama`
+    #      (componente SVG) e `imagem` (URL remota);
+    #   2. usar como `imagem` remota, aceitando dependência de rede na partida.
+    #
+    # Até então a coluna segue no esquemático "diag-coluna".
+    #
+    # A detecção por cor (alvos_por_cor) já está implementada e testada nesta
+    # prancha: achou as 4 faixas e os 4 centros corretamente. Fica pronta para
+    # quando aparecer uma prancha de regiões coloridas em vetor de verdade.
 ]
 
 
@@ -272,6 +310,30 @@ def extremos_de_linha_guia(el, m: Matriz) -> tuple[Ponto, Ponto] | None:
     return melhor[1], melhor[2]
 
 
+def catalogo_alvos(cfg: dict) -> dict[str, dict]:
+    """
+    Mapa de alvos do catálogo, seja ele keyed por rótulo inglês (`alvos`) ou por
+    cor da faixa (`alvos_por_cor`). O resto do pipeline não precisa saber qual é.
+    """
+    return cfg.get("alvos_por_cor") or cfg.get("alvos") or {}
+
+
+def hotspots_por_cor(cfg: dict, coleta: dict) -> list[tuple[str, Ponto]]:
+    """Hotspot no centro de cada faixa colorida declarada no catálogo."""
+    saida: list[tuple[str, Ponto]] = []
+    disponiveis = coleta["por_cor"]
+    for cor in cfg["alvos_por_cor"]:
+        chave = normalizar_cor(cor)
+        bb = disponiveis.get(chave)
+        if bb is None:
+            raise RuntimeError(
+                f"cor {cor} não encontrada na prancha. Cores presentes: "
+                f"{sorted(disponiveis)[:20]}"
+            )
+        saida.append((cor, ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2)))
+    return saida
+
+
 def coletar(root) -> dict:
     """Levanta desenho, marcação vermelha e rótulos ingleses com posição."""
     vb = viewbox_declarado(root)
@@ -318,7 +380,47 @@ def coletar(root) -> dict:
             min(bb_desenho[3], vb[3]),
         )
 
-    return {"bb_desenho": bb_desenho, "guias": guias, "rotulos": rotulos, "viewbox": vb}
+    return {
+        "bb_desenho": bb_desenho,
+        "guias": guias,
+        "rotulos": rotulos,
+        "viewbox": vb,
+        "por_cor": bboxes_por_cor(root, css),
+    }
+
+
+def normalizar_cor(v: str | None) -> str | None:
+    """#ABC -> #aabbcc, para comparar cor declarada com cor do catálogo."""
+    if not v:
+        return None
+    v = v.strip().lower()
+    if not v.startswith("#"):
+        return v
+    h = v[1:]
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return f"#{h}"
+
+
+def bboxes_por_cor(root, css) -> dict[str, tuple[float, float, float, float]]:
+    """
+    Área ocupada por cada cor de preenchimento.
+
+    Serve para pranchas que marcam regiões por COR em vez de linha-guia — o caso
+    da coluna vertebral, onde cada faixa (cervical, torácica, lombar, sacral) é um
+    path de cor própria. O centro da faixa vira o hotspot.
+    """
+    saida: dict[str, tuple[float, float, float, float]] = {}
+    for el, m, _pai, tinta in caminhar(root, css=css):
+        if tag_de(el) not in TAGS_GEOMETRIA:
+            continue
+        cor = normalizar_cor(tinta.get("fill"))
+        if not cor or cor in ("none", "transparent"):
+            continue
+        bb = bbox([aplicar(m, p) for p in pontos_do_elemento(el)])
+        if bb:
+            saida[cor] = unir_bbox(saida.get(cor), bb)
+    return saida
 
 
 def agrupar_rotulos(
@@ -431,6 +533,19 @@ def resolver_hotspots(coleta: dict) -> list[tuple[str, Ponto]]:
             # média das duplicatas, para cair no meio do traço
             r, q = final[gemeo]
             final[gemeo] = (r, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2))
+
+    # Aviso honesto: hotspots quase no mesmo ponto com rótulos DIFERENTES indicam
+    # que o pareamento texto↔linha-guia não é confiável nessa prancha (acontece
+    # quando há rótulos dos dois lados e linhas curtas). Melhor gritar do que
+    # gerar alvo plausível e errado.
+    for i, (ra, pa) in enumerate(final):
+        for rb, pb in final[i + 1 :]:
+            if ra != rb and math.dist(pa, pb) <= tolerancia:
+                print(
+                    f'  ⚠  pareamento duvidoso: "{ra}" e "{rb}" apontam para '
+                    f"praticamente o mesmo ponto ({pa[0]:.0f},{pa[1]:.0f}) — "
+                    f"confira no overlay antes de mapear qualquer um dos dois"
+                )
     return final
 
 
@@ -621,7 +736,10 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     print(f"\n=== {cfg['id']} — {cfg['arquivo']}")
     root = ET.fromstring(baixar_svg(cfg["arquivo"]))
     coleta = coletar(root)
-    hotspots = resolver_hotspots(coleta)
+    if cfg.get("alvos_por_cor"):
+        hotspots = hotspots_por_cor(cfg, coleta)
+    else:
+        hotspots = resolver_hotspots(coleta)
 
     bb = coleta["bb_desenho"]
     print(f"  desenho: {tuple(round(v, 1) for v in bb)}")
@@ -642,7 +760,7 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     # só os rótulos que o catálogo usa precisam sobreviver ao enquadramento;
     # pranchas com painel de detalhe têm hotspots que a gente descarta de propósito
     for rotulo, (px, py) in hotspots:
-        if rotulo not in cfg["alvos"]:
+        if rotulo not in catalogo_alvos(cfg):
             continue
         if not (bb[0] <= px <= bb[2] and bb[1] <= py <= bb[3]):
             raise RuntimeError(
@@ -650,11 +768,39 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
             )
 
     if inspecionar:
+        # não escreve prancha nenhuma, mas alimenta o conferidor visual com TODOS
+        # os hotspots detectados — é assim que se descobre qual é qual numa prancha
+        # cheia de rótulos, onde o pareamento automático não dá conta
+        rec = com_margem(bb)
+        cw, ch = rec[2] - rec[0], rec[3] - rec[1]
         print("  (modo inspeção: nada foi escrito)")
-        return None
+        return {
+            "_conferencia": {
+                "id": cfg["id"],
+                "arquivo": cfg["arquivo"],
+                "viewBoxOrigem": [
+                    coleta["viewbox"][0],
+                    coleta["viewbox"][1],
+                    coleta["viewbox"][2] - coleta["viewbox"][0],
+                    coleta["viewbox"][3] - coleta["viewbox"][1],
+                ],
+                "viewBoxGerado": [rec[0], rec[1], cw, ch],
+                "alvos": [
+                    {
+                        "id": f"det{i}",
+                        "rotulo": r,
+                        "x": round((px - rec[0]) / cw, 4),
+                        "y": round((py - rec[1]) / ch, 4),
+                        "raio": 0.03,
+                    }
+                    for i, (r, (px, py)) in enumerate(hotspots)
+                ],
+            },
+            "_somente_inspecao": True,
+        }
 
     # mapeia inglês -> (id, rótulo PT); erra alto se o catálogo divergir
-    mapa: dict[str, tuple] = cfg["alvos"]
+    mapa = catalogo_alvos(cfg)
     achados = {r for r, _ in hotspots}
     faltando = set(mapa) - achados
     sobrando = achados - set(mapa)
@@ -751,13 +897,16 @@ def main() -> None:
     conferencia = []
     for cfg in escolhidas:
         e = processar(cfg, inspecionar)
-        if e:
-            conferencia.append(e.pop("_conferencia"))
+        if not e:
+            continue
+        conferencia.append(e.pop("_conferencia"))
+        if not e.pop("_somente_inspecao", False):
             entradas.append(e)
 
     if entradas:
         merge_json(entradas)
         print(f"\n✅ {len(entradas)} prancha(s) em {JSON_PRANCHAS.relative_to(RAIZ)}")
+    if conferencia:
         escrever_sidecar(conferencia)
 
 

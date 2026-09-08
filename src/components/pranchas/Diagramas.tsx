@@ -25,7 +25,9 @@ import Svg, {
   SvgXml,
 } from "react-native-svg";
 import { colors } from "@/theme/tokens";
+import { SVG_PRANCHA_JOELHO } from "./svg/prancha-joelho";
 import { SVG_PRANCHA_MMII } from "./svg/prancha-mmii";
+import { SVG_PRANCHA_MMSS } from "./svg/prancha-mmss";
 
 const OSSO_OUTLINE = "#C9B27A";
 
@@ -193,11 +195,11 @@ function daString(xml: string): FC<DiagProps> {
 
 /** Registro de diagramas por chave (usado pela tela do jogo e pela prancha.diagrama). */
 export const DIAGRAMAS: Record<string, FC<DiagProps>> = {
-  // pranchas realistas (domínio público, geradas por script)
+  // pranchas realistas (domínio público, geradas por scripts/gerar_pranchas.py)
   "prancha-mmii": daString(SVG_PRANCHA_MMII),
-  // esquemáticos autorais (legado, em substituição)
-  "diag-mmii": DiagramaMMII,
-  "diag-mmss": DiagramaMMSS,
-  "diag-joelho": DiagramaJoelho,
+  "prancha-mmss": daString(SVG_PRANCHA_MMSS),
+  "prancha-joelho": daString(SVG_PRANCHA_JOELHO),
+  // esquemático autoral: só a coluna ainda usa (ver nota em gerar_pranchas.py
+  // sobre a prancha de coluna do Commons ser um PNG de 1,26 MB embutido)
   "diag-coluna": DiagramaColuna,
 };
