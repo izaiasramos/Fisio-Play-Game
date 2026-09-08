@@ -26,6 +26,12 @@ import {
   salvarAvatar,
   salvarMomento,
 } from "../src/lib/fotosPerfil";
+import {
+  ESCADA_QUALIDADE,
+  TETO_LADO,
+  calcularRedimensionamento,
+  reduzirAteCaber,
+} from "../src/lib/reduzirFoto";
 
 /** Teto de uma linha no Android (CursorWindow). */
 const LIMITE_LINHA = 2 * 1024 * 1024;
@@ -240,6 +246,89 @@ async function cenarioLimpeza() {
   );
 }
 
+async function cenarioRedimensionamento() {
+  console.log("\n8) cálculo do redimensionamento (nunca amplia, fixa o maior lado)");
+
+  checar(calcularRedimensionamento(4000, 3000) !== null, "foto grande é redimensionada");
+  const paisagem = calcularRedimensionamento(4000, 3000);
+  checar(
+    paisagem !== null && "width" in paisagem && paisagem.width === TETO_LADO,
+    "paisagem fixa a LARGURA no teto"
+  );
+
+  const retrato = calcularRedimensionamento(3000, 4000);
+  checar(
+    retrato !== null && "height" in retrato && retrato.height === TETO_LADO,
+    "retrato fixa a ALTURA no teto"
+  );
+
+  const quadrada = calcularRedimensionamento(2000, 2000);
+  checar(
+    quadrada !== null && "width" in quadrada && quadrada.width === TETO_LADO,
+    "quadrada fixa a largura no teto"
+  );
+
+  checar(calcularRedimensionamento(800, 600) === null, "foto já pequena não é ampliada");
+  checar(
+    calcularRedimensionamento(TETO_LADO, TETO_LADO) === null,
+    "foto exatamente no teto não é tocada"
+  );
+  checar(calcularRedimensionamento(undefined, undefined) === null, "dimensão desconhecida não arrisca");
+  checar(calcularRedimensionamento(0, 0) === null, "dimensão zero não arrisca");
+  checar(calcularRedimensionamento(NaN, 500) === null, "dimensão inválida não arrisca");
+}
+
+async function cenarioEscadaQualidade() {
+  console.log("\n9) escada de compressão para a foto caber no orçamento");
+
+  // cabe de primeira: nem desce a escada
+  const usadas: number[] = [];
+  const r1 = await reduzirAteCaber(async (q) => {
+    usadas.push(q);
+    return fotoFalsa(500_000);
+  });
+  checar(r1.uri !== null && !r1.aindaGrande, "foto que já cabe é aceita");
+  checar(usadas.length === 1 && usadas[0] === ESCADA_QUALIDADE[0], "parou no primeiro degrau");
+
+  // só cabe num degrau mais agressivo
+  const tentadas: number[] = [];
+  const r2 = await reduzirAteCaber(async (q) => {
+    tentadas.push(q);
+    // o peso cai conforme a compressão aumenta
+    return fotoFalsa(q > 0.4 ? LIMITE_FOTO_BYTES + 100_000 : 900_000);
+  });
+  checar(r2.uri !== null && !r2.aindaGrande, "desceu a escada até caber");
+  checar(r2.qualidade !== null && r2.qualidade <= 0.4, "escolheu um degrau mais comprimido");
+  checar(tentadas.length > 1, `precisou de ${tentadas.length} tentativas`);
+
+  // não cabe em degrau nenhum: devolve a menor e avisa
+  const r3 = await reduzirAteCaber(async () => fotoFalsa(LIMITE_FOTO_BYTES + 1));
+  checar(r3.aindaGrande, "marca aindaGrande quando nenhum degrau serve");
+  checar(r3.tentativas === ESCADA_QUALIDADE.length, "tentou todos os degraus antes de desistir");
+  checar(r3.uri !== null, "ainda devolve a menor imagem, para o aviso ser honesto");
+
+  // o gravador falhando em todos os degraus
+  const r4 = await reduzirAteCaber(async () => null);
+  checar(r4.uri === null && !r4.aindaGrande, "falha total devolve uri null");
+
+  // um degrau falhando no meio não descarta o que já tinha sido obtido
+  const r5 = await reduzirAteCaber(async (q) =>
+    q === ESCADA_QUALIDADE[0] ? fotoFalsa(LIMITE_FOTO_BYTES + 50_000) : null
+  );
+  checar(
+    r5.uri !== null && r5.aindaGrande && r5.qualidade === ESCADA_QUALIDADE[0],
+    "degrau que falha depois não perde o resultado anterior"
+  );
+
+  // a foto reduzida realmente é aceita pelo armazenamento
+  void reiniciar();
+  const rOk = await reduzirAteCaber(async () => fotoFalsa(400_000));
+  checar(
+    rOk.uri !== null && (await salvarAvatar(rOk.uri)).ok,
+    "a foto reduzida passa pelo guard de gravação"
+  );
+}
+
 async function main() {
   await cenarioBugAntigo();
   await cenarioFormatoNovo();
@@ -248,6 +337,8 @@ async function main() {
   await cenarioIndiceOrfao();
   await cenarioMigracao();
   await cenarioLimpeza();
+  await cenarioRedimensionamento();
+  await cenarioEscadaQualidade();
 
   if (falhas > 0) {
     console.error(`\n❌ ${falhas} verificação(ões) falharam.`);
@@ -256,7 +347,8 @@ async function main() {
   console.log(
     `\n✅ Persistência do perfil OK — fotos em chaves próprias sobrevivem a ` +
       `${MAX_MOMENTOS} momentos + avatar, orçamento de ${(LIMITE_FOTO_BYTES / 1024 / 1024).toFixed(2)} MB ` +
-      `por foto respeitado, migração do formato antigo validada.`
+      `por foto respeitado, migração do formato antigo validada, redução a ` +
+      `${TETO_LADO} px com escada de ${ESCADA_QUALIDADE.length} degraus de compressão.`
   );
 }
 

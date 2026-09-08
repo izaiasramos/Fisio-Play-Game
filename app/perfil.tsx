@@ -47,19 +47,25 @@ export default function Perfil() {
     if (res.motivo === "grande") {
       Alert.alert(
         "Foto muito grande",
-        "Esta foto não caberia no armazenamento do aparelho. Escolha outra, ou recorte uma área menor."
+        "Mesmo reduzida, esta foto não caberia no armazenamento do aparelho. Escolha outra, ou recorte uma área menor."
       );
     } else {
       Alert.alert("Não deu para salvar", "Tente novamente com outra foto.");
     }
   };
 
+  /** A foto não pôde ser lida ou reduzida — nada foi gravado. */
+  const avisarFalhaLeitura = () =>
+    Alert.alert("Não deu para abrir a foto", "Tente novamente, ou escolha outra imagem.");
+
   const trocarAvatar = async () => {
     if (ocupado) return;
     setOcupado(true);
     try {
-      const uri = await escolherFoto({ aspecto: [1, 1] });
-      if (uri) avisarFalha(await setAvatar(uri));
+      const escolha = await escolherFoto({ aspecto: [1, 1] });
+      if (escolha.estado === "cancelado") return;
+      if (escolha.estado === "falha") return avisarFalhaLeitura();
+      avisarFalha(await setAvatar(escolha.uri));
     } finally {
       setOcupado(false);
     }
@@ -69,8 +75,10 @@ export default function Perfil() {
     if (ocupado || momentos.length >= MAX_MOMENTOS) return;
     setOcupado(true);
     try {
-      const uri = await escolherFoto({ aspecto: [3, 4] });
-      if (uri) avisarFalha(await addMomento(uri));
+      const escolha = await escolherFoto({ aspecto: [3, 4] });
+      if (escolha.estado === "cancelado") return;
+      if (escolha.estado === "falha") return avisarFalhaLeitura();
+      avisarFalha(await addMomento(escolha.uri));
     } finally {
       setOcupado(false);
     }
