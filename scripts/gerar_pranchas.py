@@ -520,35 +520,78 @@ def agrupar_rotulos(
     return saida
 
 
-def blocos_por_coluna(
-    rotulos: list[tuple[str, Ponto]], gap: float = 34.0
-) -> list[dict]:
-    """
-    Agrupa os <text> em blocos de rótulo, por COLUNA.
+def _juntar(fragmentos: list[str]) -> str:
+    """Une as linhas de um rótulo, sem repetir fragmento igual.
 
-    Pranchas didáticas alinham todos os rótulos em uma ou duas colunas de x fixo
-    ("Anterior cruciate" / "ligament" empilhados). Agrupando por x idêntico e
-    depois por proximidade vertical, cada bloco fica sendo um rótulo inteiro, e o
-    y da PRIMEIRA linha é o que a linha-guia acompanha.
+    A repetição aparece nas pranchas traduzidas: o <switch> traz a variante
+    `systemLanguage="en"` E a variante de fallback, as duas em inglês.
     """
-    colunas: dict[float, list[tuple[str, Ponto]]] = {}
-    for txt, p in rotulos:
-        colunas.setdefault(round(p[0], 1), []).append((txt, p))
+    vistos: set[str] = set()
+    saida: list[str] = []
+    for f in fragmentos:
+        if f not in vistos:
+            vistos.add(f)
+            saida.append(f)
+    return " ".join(saida)
 
-    blocos: list[dict] = []
-    for cx, itens in colunas.items():
-        itens.sort(key=lambda it: it[1][1])
-        atual: list[tuple[str, Ponto]] = []
-        for item in itens:
-            if atual and item[1][1] - atual[-1][1][1] > gap:
-                blocos.append({"coluna": cx, "y": atual[0][1][1],
-                               "texto": " ".join(t for t, _ in atual)})
-                atual = []
-            atual.append(item)
-        if atual:
-            blocos.append({"coluna": cx, "y": atual[0][1][1],
-                           "texto": " ".join(t for t, _ in atual)})
-    return blocos
+
+def particionar_em_blocos(ys: list[float], linhas_y: list[float]) -> list[tuple[int, int]]:
+    """
+    Divide os textos de uma coluna em exatamente len(linhas_y) blocos contíguos,
+    casando cada bloco com a linha-guia da sua altura.
+
+    Por que não dá para agrupar por limiar vertical: no joelho o espaçamento
+    DENTRO de um rótulo ("Anterior cruciate" / "ligament" = 27,5) é praticamente
+    igual ao espaçamento ENTRE rótulos (29 a 34). Nenhum gap separa os dois casos.
+
+    O que resolve é usar as próprias linhas-guia: elas dizem quantos rótulos a
+    coluna tem. Aí sobra um problema de partição bem-posto — achar os cortes que
+    minimizam a distância entre cada linha-guia e a faixa vertical do seu bloco —
+    resolvido exato por programação dinâmica.
+
+    Devolve os intervalos [inicio, fim) de cada bloco, na ordem das linhas.
+    """
+    n, k = len(ys), len(linhas_y)
+    if k == 0 or n == 0:
+        return []
+    if k > n:
+        raise RuntimeError(
+            f"{k} linhas-guia para só {n} linhas de texto na coluna — "
+            "prancha fora do padrão esperado"
+        )
+
+    def custo(i: int, j: int, ly: float) -> float:
+        """Distância da linha-guia à faixa [ys[i], ys[j-1]]; 0 se cai dentro."""
+        topo, base = ys[i], ys[j - 1]
+        if topo <= ly <= base:
+            return 0.0
+        return min(abs(ly - topo), abs(ly - base))
+
+    INF = float("inf")
+    # dp[b][i] = melhor custo usando os b primeiros blocos para os i primeiros textos
+    dp = [[INF] * (n + 1) for _ in range(k + 1)]
+    corte = [[-1] * (n + 1) for _ in range(k + 1)]
+    dp[0][0] = 0.0
+    for b in range(1, k + 1):
+        for i in range(b, n - (k - b) + 1):
+            for j in range(b - 1, i):
+                if dp[b - 1][j] == INF:
+                    continue
+                c = dp[b - 1][j] + custo(j, i, linhas_y[b - 1])
+                if c < dp[b][i]:
+                    dp[b][i] = c
+                    corte[b][i] = j
+    if dp[k][n] == INF:
+        raise RuntimeError("não foi possível particionar os rótulos da coluna")
+
+    limites: list[tuple[int, int]] = []
+    i = n
+    for b in range(k, 0, -1):
+        j = corte[b][i]
+        limites.append((j, i))
+        i = j
+    limites.reverse()
+    return limites
 
 
 def hotspots_por_coluna(coleta: dict) -> list[tuple[str, Ponto]]:
@@ -566,25 +609,43 @@ def hotspots_por_coluna(coleta: dict) -> list[tuple[str, Ponto]]:
     É determinístico, e é o que permite mapear LCA, LCP, meniscos e colaterais
     sem chutar — o que o pareamento por distância errava.
     """
-    blocos = blocos_por_coluna(coleta["rotulos"])
-    if not blocos:
+    if not coleta["rotulos"]:
         raise RuntimeError("nenhum rótulo encontrado para pareamento por coluna")
-    colunas = sorted({b["coluna"] for b in blocos})
+    if not coleta["retas"]:
+        raise RuntimeError("nenhuma linha-guia reta encontrada")
+
+    # textos por coluna de x
+    por_coluna: dict[float, list[tuple[str, Ponto]]] = {}
+    for txt, p in coleta["rotulos"]:
+        por_coluna.setdefault(round(p[0], 1), []).append((txt, p))
+    for itens in por_coluna.values():
+        itens.sort(key=lambda it: it[1][1])
+    colunas = sorted(por_coluna)
+
+    # cada linha-guia: descobre a coluna do seu rótulo e qual ponta é o hotspot
+    linhas: list[dict] = []
+    for a, b in coleta["retas"]:
+        cand = [
+            (abs(ponta[0] - cx), cx, ponta, outra)
+            for ponta, outra in ((a, b), (b, a))
+            for cx in colunas
+        ]
+        _, cx, ponta_rotulo, hotspot = min(cand, key=lambda c: c[0])
+        linhas.append({"coluna": cx, "y": ponta_rotulo[1], "hotspot": hotspot})
 
     saida: list[tuple[str, Ponto]] = []
-    for a, b in coleta["retas"]:
-        # ponta do rótulo = a que fica mais perto de alguma coluna de texto
-        cand = []
-        for ponta, outra in ((a, b), (b, a)):
-            for cx in colunas:
-                cand.append((abs(ponta[0] - cx), cx, ponta, outra))
-        dist, cx, ponta_rotulo, hotspot = min(cand, key=lambda c: c[0])
+    for cx in colunas:
+        da_coluna = sorted([ln for ln in linhas if ln["coluna"] == cx], key=lambda ln: ln["y"])
+        if not da_coluna:
+            continue
+        itens = por_coluna[cx]
+        ys = [p[1] for _, p in itens]
+        blocos = particionar_em_blocos(ys, [ln["y"] for ln in da_coluna])
+        for ln, (ini, fim) in zip(da_coluna, blocos):
+            texto = _juntar([t for t, _ in itens[ini:fim]])
+            saida.append((texto, ln["hotspot"]))
 
-        na_coluna = [x for x in blocos if x["coluna"] == cx]
-        bloco = min(na_coluna, key=lambda x: abs(x["y"] - ponta_rotulo[1]))
-        saida.append((bloco["texto"], hotspot))
-
-    # duas linhas não deveriam cair no mesmo rótulo
+    # cada rótulo deveria ter exatamente uma linha-guia
     vistos: dict[str, Ponto] = {}
     for rotulo, p in saida:
         if rotulo in vistos:
