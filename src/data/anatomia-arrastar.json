@@ -51,12 +51,6 @@
           "y": 0.0947
         },
         {
-          "id": "escapula",
-          "rotulo": "Escápula",
-          "x": 0.4184,
-          "y": 0.132
-        },
-        {
           "id": "umero",
           "rotulo": "Úmero",
           "x": 0.2808,

@@ -9,8 +9,14 @@ Só stdlib. O que precisamos é modesto mas tem que estar certo:
     bounding box (usado tanto para achar as bolinhas dos rótulos quanto para
     recortar o viewBox em volta do desenho).
 
-Não é um renderizador: curvas são aproximadas pelos pontos de controle, o que
-superestima levemente a bbox. Para recorte e classificação de bolinha é de sobra.
+Não é um renderizador. Por padrão, curvas são aproximadas pelos pontos de
+controle, o que superestima levemente a bbox — para recorte de prancha e
+classificação de bolinha é de sobra.
+
+Quando a bbox precisa ser fiel à forma (extrair uma peça de osso e saber o
+tamanho e o centro exatos dela), passe `achatar_curvas=True`: aí as curvas são
+amostradas de verdade. O padrão continua sendo o modo aproximado, para o
+pipeline de pranchas não mudar de resultado.
 """
 from __future__ import annotations
 
@@ -104,70 +110,7 @@ def _tokens(d: str) -> Iterator[tuple[str | None, float | None]]:
         yield (cmd, None) if cmd else (None, float(num))
 
 
-def pontos_do_path(d: str) -> list[Ponto]:
-    """
-    Pontos percorridos pelo path, em coordenadas locais do elemento.
-    Comandos relativos são resolvidos; pontos de controle entram na lista
-    (aproximação segura por excesso para fins de bbox).
-    """
-    pts: list[Ponto] = []
-    cx = cy = 0.0          # ponto atual
-    sx = sy = 0.0          # início do subpath (para Z)
-    cmd = ""
-    args: list[float] = []
-
-    def consumir() -> None:
-        """Consome `args` de acordo com `cmd`, avançando o ponto atual."""
-        nonlocal cx, cy, sx, sy, args
-        rel = cmd.islower()
-        c = cmd.upper()
-        passo = {"M": 2, "L": 2, "T": 2, "H": 1, "V": 1, "C": 6, "S": 4, "Q": 4, "A": 7}.get(c)
-        if passo is None:
-            return
-        i = 0
-        primeiro = True
-        while i + passo <= len(args):
-            bloco = args[i : i + passo]
-            if c in ("M", "L", "T"):
-                x, y = bloco
-                cx, cy = (cx + x, cy + y) if rel else (x, y)
-                if c == "M" and primeiro:
-                    sx, sy = cx, cy
-                pts.append((cx, cy))
-            elif c == "H":
-                cx = cx + bloco[0] if rel else bloco[0]
-                pts.append((cx, cy))
-            elif c == "V":
-                cy = cy + bloco[0] if rel else bloco[0]
-                pts.append((cx, cy))
-            elif c in ("C", "S", "Q"):
-                # pares (x,y) sequenciais; o último é o ponto final
-                for j in range(0, passo, 2):
-                    x, y = bloco[j], bloco[j + 1]
-                    px, py = (cx + x, cy + y) if rel else (x, y)
-                    pts.append((px, py))
-                fx, fy = bloco[passo - 2], bloco[passo - 1]
-                cx, cy = (cx + fx, cy + fy) if rel else (fx, fy)
-            elif c == "A":
-                x, y = bloco[5], bloco[6]
-                cx, cy = (cx + x, cy + y) if rel else (x, y)
-                pts.append((cx, cy))
-            i += passo
-            primeiro = False
-        args = []
-
-    for tok_cmd, num in _tokens(d):
-        if tok_cmd is not None:
-            consumir()
-            cmd = tok_cmd
-            if cmd in ("Z", "z"):
-                cx, cy = sx, sy
-                pts.append((cx, cy))
-                cmd = ""
-        elif num is not None:
-            args.append(num)
-    consumir()
-    return pts
+/
 
 
 # --- pontos de qualquer elemento geométrico ----------------------------------

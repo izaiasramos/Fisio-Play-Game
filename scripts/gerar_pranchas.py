@@ -116,13 +116,19 @@ PRANCHAS: list[dict] = [
         "recorte": {"x1": 430, "y0": 20, "y1": 745},
         "alvos": {
             "Clavicle": ("clavicula", "Clavícula"),
-            "Scapula": ("escapula", "Escápula"),
+            # "Scapula" fica de fora: nesta vista ANTERIOR a escápula aparece só
+            # como sombra atrás das costelas, e o hotspot dela cai a 19px do da
+            # clavícula — abaixo da tolerância de toque, o que deixaria os dois
+            # alvos ambíguos. Escápula pede uma prancha de vista posterior.
             "Humerus": ("umero", "Úmero"),
             "Radius": ("radio", "Rádio"),
             "Ulna": ("ulna", "Ulna"),
-            "Carpus": ("carpo", "Carpo"),
-            "Metacarpus": ("metacarpo", "Metacarpo"),
-            "Phalanges": ("falanges", "Falanges"),
+            # Carpo, metacarpo e falanges ficam empilhados numa mão pequena: a
+            # tolerância padrão (10% da largura) faria um invadir o outro. Raio
+            # menor mantém os três jogáveis, e o anel na tela acompanha o raio.
+            "Carpus": ("carpo", "Carpo", 0.07),
+            "Metacarpus": ("metacarpo", "Metacarpo", 0.07),
+            "Phalanges": ("falanges", "Falanges", 0.07),
         },
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público",
@@ -491,13 +497,18 @@ def limpar(root, recorte: tuple[float, float, float, float]) -> None:
 
 
 def encolher_numeros(svg: str) -> str:
-    """Arredonda para 2 casas — imperceptível no traço, corta bastante bundle."""
+    """
+    Arredonda coordenadas para 1 casa decimal.
+
+    As pranchas vêm com 3–4 casas, precisão que não sobrevive à tela: o viewBox
+    tem algumas centenas de unidades e é desenhado em ~200px, então 0,1 unidade
+    vale menos de 0,1 pixel. Corta bundle sem alterar o traço.
+    """
 
     def corta(m: re.Match) -> str:
-        v = round(float(m.group(0)), 2)
-        return f"{v:g}"
+        return f"{round(float(m.group(0)), 1):g}"
 
-    return re.sub(r"-?\d+\.\d{3,}", corta, svg)
+    return re.sub(r"-?\d+\.\d{2,}", corta, svg)
 
 
 # Atributos que não afetam o render da prancha: identificadores do editor de
@@ -621,7 +632,7 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
         return None
 
     # mapeia inglês -> (id, rótulo PT); erra alto se o catálogo divergir
-    mapa: dict[str, tuple[str, str]] = cfg["alvos"]
+    mapa: dict[str, tuple] = cfg["alvos"]
     achados = {r for r, _ in hotspots}
     faltando = set(mapa) - achados
     sobrando = achados - set(mapa)
@@ -644,15 +655,17 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     for rotulo_en, (px, py) in hotspots:
         if rotulo_en not in mapa:
             continue
-        alvo_id, rotulo_pt = mapa[rotulo_en]
-        alvos.append(
-            {
-                "id": alvo_id,
-                "rotulo": rotulo_pt,
-                "x": round((px - x0) / vw, 4),
-                "y": round((py - y0) / vh, 4),
-            }
-        )
+        entrada = mapa[rotulo_en]
+        alvo_id, rotulo_pt = entrada[0], entrada[1]
+        alvo = {
+            "id": alvo_id,
+            "rotulo": rotulo_pt,
+            "x": round((px - x0) / vw, 4),
+            "y": round((py - y0) / vh, 4),
+        }
+        if len(entrada) > 2 and entrada[2]:
+            alvo["raio"] = entrada[2]
+        alvos.append(alvo)
     alvos.sort(key=lambda a: (a["y"], a["x"]))
 
     destino = escrever_modulo_svg(cfg["diagrama"], svg, cfg)
