@@ -8,12 +8,19 @@ import { setAudioModeAsync } from "expo-audio";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, initialWindowMetrics } from "react-native-safe-area-context";
 import { HeaderVoltar } from "@/components/HeaderVoltar";
+import { iniciarPerfil } from "@/store/usePerfil";
 import { colors } from "@/theme/tokens";
 
 export default function RootLayout() {
   useEffect(() => {
     // Permite tocar os sons de feedback mesmo com o celular no silencioso.
     setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // As fotos do perfil moram numa chave por foto (fora do persist do
+    // zustand), então precisam ser lidas explicitamente na abertura do app.
+    iniciarPerfil().catch((e) => console.warn("[perfil] falha ao carregar as fotos:", e));
   }, []);
 
   return (

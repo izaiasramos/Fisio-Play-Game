@@ -101,21 +101,32 @@ export type CasoClinico = {
   distratores?: string[];
 };
 
+/** Uma foto "momento" da torcida: id estável + imagem em data URI (base64). */
+export type Momento = {
+  id: string;
+  uri: string;
+};
+
 /**
  * Perfil personalizável do usuário (a Isa 💜). 100% local/offline: as fotos
  * são guardadas como data URI (base64) no AsyncStorage — nada é enviado.
+ *
+ * As fotos NÃO moram na mesma chave que os campos de texto: cada uma tem a sua
+ * (ver `lib/fotosPerfil.ts`), porque no Android o AsyncStorage tem teto de ~2 MB
+ * por linha e base64 junto estourava esse limite, derrubando a leitura do
+ * perfil inteiro.
  */
 export type Perfil = {
   /** nome/apelido exibido na home */
   nome: string;
   /** frase carinhosa/motivacional que aparece junto do avatar */
   frase: string;
-  /** avatar em data URI (base64) para persistir offline em qualquer plataforma */
+  /** avatar em data URI (base64); carregado da sua própria chave */
   avatarUri: string | null;
   /** cor de destaque escolhida (hex) usada nos elementos personalizados */
   corTema: string;
-  /** fotos "momentos" (data URIs) que viram a torcida animada na home */
-  momentos: string[];
+  /** fotos "momentos" que viram a torcida animada na home */
+  momentos: Momento[];
 };
 
 /** Progresso persistido do usuário. */

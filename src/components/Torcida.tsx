@@ -29,7 +29,7 @@ export function Torcida() {
 
   if (!momentos.length) return null;
 
-  const foto = momentos[i % momentos.length];
+  const foto = momentos[i % momentos.length].uri;
   const incentivo = frase?.trim() || TORCIDAS[i % TORCIDAS.length];
   const quem = nome?.trim() || "Luuh";
   const saudacao = `Vai, ${quem}!`;

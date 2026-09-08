@@ -13,6 +13,7 @@ import { Stack } from "expo-router";
 import { MotiView } from "moti";
 import { FundoHalos } from "@/components/FundoHalos";
 import { escolherFoto } from "@/lib/escolherFoto";
+import type { ResultadoFoto } from "@/lib/fotosPerfil";
 import { usePaddingRodape } from "@/lib/useRodape";
 import { CORES_TEMA, MAX_MOMENTOS, usePerfil } from "@/store/usePerfil";
 import { colors } from "@/theme/tokens";
@@ -36,12 +37,29 @@ export default function Perfil() {
 
   const [ocupado, setOcupado] = useState(false);
 
+  /**
+   * Avisa quando a foto não pôde ser gravada. Sem isto a foto apareceria na
+   * tela e sumiria no próximo abrir do app — exatamente o bug que a separação
+   * das fotos em chaves próprias corrigiu.
+   */
+  const avisarFalha = (res: ResultadoFoto) => {
+    if (res.ok) return;
+    if (res.motivo === "grande") {
+      Alert.alert(
+        "Foto muito grande",
+        "Esta foto não caberia no armazenamento do aparelho. Escolha outra, ou recorte uma área menor."
+      );
+    } else {
+      Alert.alert("Não deu para salvar", "Tente novamente com outra foto.");
+    }
+  };
+
   const trocarAvatar = async () => {
     if (ocupado) return;
     setOcupado(true);
     try {
       const uri = await escolherFoto({ aspecto: [1, 1] });
-      if (uri) setAvatar(uri);
+      if (uri) avisarFalha(await setAvatar(uri));
     } finally {
       setOcupado(false);
     }
@@ -52,7 +70,7 @@ export default function Perfil() {
     setOcupado(true);
     try {
       const uri = await escolherFoto({ aspecto: [3, 4] });
-      if (uri) addMomento(uri);
+      if (uri) avisarFalha(await addMomento(uri));
     } finally {
       setOcupado(false);
     }
@@ -172,9 +190,9 @@ export default function Perfil() {
         </Text>
 
         <View className="flex-row flex-wrap" style={{ gap: 12 }}>
-          {momentos.map((uri, i) => (
+          {momentos.map(({ id, uri }) => (
             <MotiView
-              key={`${i}-${uri.slice(-12)}`}
+              key={id}
               from={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ type: "timing", duration: 260 }}
@@ -182,7 +200,7 @@ export default function Perfil() {
               <View style={styles.momento}>
                 <Image source={{ uri }} style={styles.momentoImg} />
                 <Pressable
-                  onPress={() => removeMomento(i)}
+                  onPress={() => removeMomento(id)}
                   accessibilityRole="button"
                   accessibilityLabel="Remover foto"
                   hitSlop={8}
