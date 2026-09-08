@@ -70,8 +70,20 @@ MARGEM = 0.02
 
 
 # --- catálogo -----------------------------------------------------------------
+#
 # `alvos` é keyed pelo rótulo EM INGLÊS que existe no SVG original. Assim o
-# mapeamento é auditável: se o Commons renomear/remover um rótulo, o script falha.
+# mapeamento é auditável: se o Commons renomear/remover um rótulo, o script falha
+# em vez de gerar alvo errado em silêncio.
+#
+# Cada alvo aceita:
+#   id      — id do alvo no jogo (obrigatório)
+#   rotulo  — texto do chip, em português (obrigatório)
+#   raio    — tolerância de acerto como fração da largura (default 0.1 no jogo).
+#             Vale reduzir quando duas estruturas são vizinhas de verdade.
+#   pos     — (x, y) em unidades do SVG de origem, para SOBRESCREVER o ponto que
+#             a linha-guia marcava. Usar só com verificação visual, e sempre com
+#             `nota` explicando o porquê.
+#   nota    — justificativa de um `pos` manual (fica no código, não no app).
 
 PRANCHAS: list[dict] = [
     {
@@ -85,10 +97,10 @@ PRANCHAS: list[dict] = [
         # maléolos: mantém os 4 alvos com contexto de quadril e tornozelo.
         "recorte": {"y0": 72, "y1": 448},
         "alvos": {
-            "Femur": ("femur", "Fêmur"),
-            "Patella": ("patela", "Patela"),
-            "Tibia": ("tibia", "Tíbia"),
-            "Fibula": ("fibula", "Fíbula"),
+            "Femur": {"id": "femur", "rotulo": "Fêmur"},
+            "Patella": {"id": "patela", "rotulo": "Patela"},
+            "Tibia": {"id": "tibia", "rotulo": "Tíbia"},
+            "Fibula": {"id": "fibula", "rotulo": "Fíbula"},
         },
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "Jecowa · Wikimedia Commons · domínio público",
@@ -115,22 +127,30 @@ PRANCHAS: list[dict] = [
         # um recorte natural, e descarta os hotspots do painel de detalhe.
         "recorte": {"x1": 430, "y0": 20, "y1": 745},
         "alvos": {
-            "Clavicle": ("clavicula", "Clavícula"),
-            # "Scapula" fica de fora: nesta vista ANTERIOR a escápula aparece só
-            # como sombra atrás das costelas, e o hotspot dela cai a 19px do da
-            # clavícula — abaixo da tolerância de toque, o que deixaria os dois
-            # alvos ambíguos. Escápula pede uma prancha de vista posterior.
-            "Humerus": ("umero", "Úmero"),
+            "Clavicle": {"id": "clavicula", "rotulo": "Clavícula"},
+            "Scapula": {
+                "id": "escapula",
+                "rotulo": "Escápula",
+                "pos": (271.5, 159.5),
+                "nota": (
+                    "A linha-guia original aponta para o acrômio, a 19px do alvo "
+                    "da clavícula — perto demais, os dois ficariam ambíguos ao "
+                    "toque. Movido para o corpo da escápula (área contornada em "
+                    "verde atrás das costelas), que é a mesma estrutura e fica "
+                    "bem separada."
+                ),
+            },
+            "Humerus": {"id": "umero", "rotulo": "Úmero"},
             # rádio e ulna correm lado a lado no antebraço; mesmo motivo do raio
             # menor nos ossos da mão
-            "Radius": ("radio", "Rádio", 0.08),
-            "Ulna": ("ulna", "Ulna", 0.08),
+            "Radius": {"id": "radio", "rotulo": "Rádio", "raio": 0.08},
+            "Ulna": {"id": "ulna", "rotulo": "Ulna", "raio": 0.08},
             # Carpo, metacarpo e falanges ficam empilhados numa mão pequena: a
             # tolerância padrão (10% da largura) faria um invadir o outro. Raio
             # menor mantém os três jogáveis, e o anel na tela acompanha o raio.
-            "Carpus": ("carpo", "Carpo", 0.07),
-            "Metacarpus": ("metacarpo", "Metacarpo", 0.07),
-            "Phalanges": ("falanges", "Falanges", 0.07),
+            "Carpus": {"id": "carpo", "rotulo": "Carpo", "raio": 0.07},
+            "Metacarpus": {"id": "metacarpo", "rotulo": "Metacarpo", "raio": 0.07},
+            "Phalanges": {"id": "falanges", "rotulo": "Falanges", "raio": 0.07},
         },
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público",
@@ -658,15 +678,17 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
         if rotulo_en not in mapa:
             continue
         entrada = mapa[rotulo_en]
-        alvo_id, rotulo_pt = entrada[0], entrada[1]
+        if entrada.get("pos"):
+            px, py = entrada["pos"]
+            print(f"    ({entrada['id']}: posição sobrescrita à mão)")
         alvo = {
-            "id": alvo_id,
-            "rotulo": rotulo_pt,
+            "id": entrada["id"],
+            "rotulo": entrada["rotulo"],
             "x": round((px - x0) / vw, 4),
             "y": round((py - y0) / vh, 4),
         }
-        if len(entrada) > 2 and entrada[2]:
-            alvo["raio"] = entrada[2]
+        if entrada.get("raio"):
+            alvo["raio"] = entrada["raio"]
         alvos.append(alvo)
     alvos.sort(key=lambda a: (a["y"], a["x"]))
 
@@ -676,6 +698,7 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     for a in alvos:
         print(f"    {a['rotulo']:12} x={a['x']:.4f} y={a['y']:.4f}")
 
+    vb_origem = coleta["viewbox"]
     return {
         "id": cfg["id"],
         "trilhaId": cfg["trilhaId"],
@@ -687,7 +710,30 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
         "urlFonte": "https://commons.wikimedia.org/wiki/File:"
         + cfg["arquivo"].replace(" ", "_"),
         "imagemCredito": cfg["credito"],
+        # consumido por escrever_sidecar() e removido antes de ir para o JSON
+        "_conferencia": {
+            "id": cfg["id"],
+            "arquivo": cfg["arquivo"],
+            "viewBoxOrigem": [vb_origem[0], vb_origem[1], vb_origem[2] - vb_origem[0], vb_origem[3] - vb_origem[1]],
+            "viewBoxGerado": [x0, y0, vw, vh],
+            "alvos": alvos,
+        },
     }
+
+
+SIDECAR = Path("/tmp/fisioplay-pranchas-conferencia.json")
+
+
+def escrever_sidecar(entradas: list[dict]) -> None:
+    """
+    Dados que o conferidor visual (scripts/conferir_prancha.cjs) precisa para
+    recortar o raster de origem no mesmo enquadramento e marcar os alvos por cima.
+    Vai para /tmp porque é material de verificação, não de build.
+    """
+    SIDECAR.write_text(
+        json.dumps(entradas, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    print(f"\nconferência: node scripts/conferir_prancha.cjs <id>   (dados em {SIDECAR})")
 
 
 def main() -> None:
@@ -702,14 +748,17 @@ def main() -> None:
         sys.exit(1)
 
     entradas = []
+    conferencia = []
     for cfg in escolhidas:
         e = processar(cfg, inspecionar)
         if e:
+            conferencia.append(e.pop("_conferencia"))
             entradas.append(e)
 
     if entradas:
         merge_json(entradas)
         print(f"\n✅ {len(entradas)} prancha(s) em {JSON_PRANCHAS.relative_to(RAIZ)}")
+        escrever_sidecar(conferencia)
 
 
 if __name__ == "__main__":
