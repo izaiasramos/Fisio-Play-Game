@@ -121,8 +121,10 @@ PRANCHAS: list[dict] = [
             # clavícula — abaixo da tolerância de toque, o que deixaria os dois
             # alvos ambíguos. Escápula pede uma prancha de vista posterior.
             "Humerus": ("umero", "Úmero"),
-            "Radius": ("radio", "Rádio"),
-            "Ulna": ("ulna", "Ulna"),
+            # rádio e ulna correm lado a lado no antebraço; mesmo motivo do raio
+            # menor nos ossos da mão
+            "Radius": ("radio", "Rádio", 0.08),
+            "Ulna": ("ulna", "Ulna", 0.08),
             # Carpo, metacarpo e falanges ficam empilhados numa mão pequena: a
             # tolerância padrão (10% da largura) faria um invadir o outro. Raio
             # menor mantém os três jogáveis, e o anel na tela acompanha o raio.
