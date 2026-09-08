@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { MotiView } from "moti";
-import { listarPranchas } from "@/lib/loadPranchas";
+import { RAIO_ALVO_PADRAO, listarPranchas } from "@/lib/loadPranchas";
 import {
   type ChipArrastar,
   alvoNoPonto,
@@ -262,16 +262,24 @@ export default function ArrastarScreen() {
               style={{ width: imgW, height: imgH, borderRadius: 12, backgroundColor: "#fff" }}
             />
           )}
-          {/* anéis-alvo (não resolvidos) */}
+          {/* anéis-alvo (não resolvidos) — o raio do anel é o raio real de
+              acerto, então o que o jogador vê é a tolerância que existe */}
           {prancha.alvos.map((a) => {
             if (resolvidos.includes(a.id)) return null;
+            const r = (a.raio ?? RAIO_ALVO_PADRAO) * imgW;
             return (
               <View
                 key={a.id}
                 pointerEvents="none"
                 style={[
                   styles.alvoRing,
-                  { left: a.x * imgW - 15, top: a.y * imgH - 15 },
+                  {
+                    left: a.x * imgW - r,
+                    top: a.y * imgH - r,
+                    width: r * 2,
+                    height: r * 2,
+                    borderRadius: r,
+                  },
                 ]}
               />
             );
@@ -386,11 +394,9 @@ function ChipArrastavel({
 const styles = StyleSheet.create({
   halo: { position: "absolute", width: 340, height: 340, borderRadius: 170 },
   haloPrimary: { top: -90, left: -80, backgroundColor: colors.primary, opacity: 0.3 },
+  // tamanho vem do raio de cada alvo, definido no render
   alvoRing: {
     position: "absolute",
-    width: 30,
-    height: 30,
-    borderRadius: 15,
     borderWidth: 2,
     borderColor: colors.accent,
     backgroundColor: "rgba(0,210,168,0.12)",
