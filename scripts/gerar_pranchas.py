@@ -44,11 +44,14 @@ from svgtools import (  # noqa: E402
     Ponto,
     aplicar,
     bbox,
+    coletar_css,
     cores_do_elemento,
+    css_do_elemento,
     eh_vermelho,
     multiplicar,
     nao_pinta_nada,
     parse_transform,
+    pintura,
     pontos_do_elemento,
     unir_bbox,
 )
@@ -90,6 +93,40 @@ PRANCHAS: list[dict] = [
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "Jecowa · Wikimedia Commons · domínio público",
     },
+    {
+        "id": "joelho",
+        "trilhaId": "anatomia",
+        "titulo": "Articulação do joelho",
+        "arquivo": "Knee diagram.svg",
+        "diagrama": "prancha-joelho",
+        "alvos": {},
+        "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+        "credito": "Mysid · Wikimedia Commons · domínio público",
+    },
+    {
+        "id": "ossos-mmss",
+        "trilhaId": "anatomia",
+        "titulo": "Ossos do membro superior",
+        "arquivo": "Human arm bones diagram.svg",
+        "diagrama": "prancha-mmss",
+        # A prancha tem dois painéis: visão geral do membro à esquerda e um zoom
+        # de acidentes ósseos (epicôndilos, tubérculos, fossas) à direita. Só o
+        # painel esquerdo interessa aqui; corta na linha média da coluna, que dá
+        # um recorte natural, e descarta os hotspots do painel de detalhe.
+        "recorte": {"x1": 430, "y0": 20, "y1": 745},
+        "alvos": {
+            "Clavicle": ("clavicula", "Clavícula"),
+            "Scapula": ("escapula", "Escápula"),
+            "Humerus": ("umero", "Úmero"),
+            "Radius": ("radio", "Rádio"),
+            "Ulna": ("ulna", "Ulna"),
+            "Carpus": ("carpo", "Carpo"),
+            "Metacarpus": ("metacarpo", "Metacarpo"),
+            "Phalanges": ("falanges", "Falanges"),
+        },
+        "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+        "credito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público",
+    },
 ]
 
 
@@ -121,14 +158,36 @@ def tag_de(el) -> str:
     return el.tag.split("}")[-1]
 
 
-def caminhar(el, m: Matriz = IDENTIDADE, pai=None):
-    """(elemento, transform acumulado, pai) em pré-ordem, pulando não-renderizados."""
+def caminhar(el, m: Matriz = IDENTIDADE, pai=None, herdado: dict | None = None, css=None):
+    """
+    (elemento, transform acumulado, pai, tinta efetiva) em pré-ordem, pulando
+    não-renderizados.
+
+    A tinta tem que ser resolvida de verdade, não só lida do atributo:
+      - herdada do <g> pai (comum declarar `stroke` no grupo);
+      - vinda de CSS por classe (a prancha do braço declara as linhas-guia com
+        `.leader { stroke:#FF0000 }`, sem nenhum atributo de cor no elemento).
+    Precedência: CSS < herdado < atributo/style inline.
+    """
+    herdado = herdado or {}
+    css = css if css is not None else {}
     m2 = multiplicar(m, parse_transform(el.get("transform")))
-    yield el, m2, pai
+
+    tinta = dict(herdado)
+    do_css = css_do_elemento(el, css)
+    for prop in ("fill", "stroke"):
+        if prop in do_css:
+            tinta[prop] = do_css[prop]
+    for prop in ("fill", "stroke"):
+        v = pintura(el, prop)
+        if v:
+            tinta[prop] = v
+
+    yield el, m2, pai, tinta
     for filho in el:
         if tag_de(filho) in TAGS_NAO_RENDERIZADAS:
             continue
-        yield from caminhar(filho, m2, el)
+        yield from caminhar(filho, m2, el, tinta, css)
 
 
 def viewbox_declarado(root) -> tuple[float, float, float, float] | None:
@@ -143,7 +202,10 @@ def viewbox_declarado(root) -> tuple[float, float, float, float] | None:
         return None
 
 
-def eh_vermelho_el(el) -> bool:
+def eh_vermelho_el(el, tinta: dict | None = None) -> bool:
+    """Marcação de rótulo: vermelho saturado na tinta efetiva do elemento."""
+    if tinta and any(eh_vermelho(v) for v in tinta.values()):
+        return True
     return any(eh_vermelho(c) for c in cores_do_elemento(el))
 
 
@@ -185,11 +247,12 @@ def extremos_de_linha_guia(el, m: Matriz) -> tuple[Ponto, Ponto] | None:
 def coletar(root) -> dict:
     """Levanta desenho, marcação vermelha e rótulos ingleses com posição."""
     vb = viewbox_declarado(root)
+    css = coletar_css(root)
     bb_desenho = None
     guias: list[tuple[Ponto, Ponto]] = []
     rotulos: list[tuple[str, Ponto]] = []
 
-    for el, m, _pai in caminhar(root):
+    for el, m, _pai, tinta in caminhar(root, css=css):
         t = tag_de(el)
 
         ingles = texto_em_ingles(el)
@@ -204,7 +267,7 @@ def coletar(root) -> dict:
         if t not in TAGS_GEOMETRIA:
             continue
 
-        if eh_vermelho_el(el):
+        if eh_vermelho_el(el, tinta):
             ext = extremos_de_linha_guia(el, m)
             if ext:
                 guias.append(ext)
@@ -230,29 +293,133 @@ def coletar(root) -> dict:
     return {"bb_desenho": bb_desenho, "guias": guias, "rotulos": rotulos, "viewbox": vb}
 
 
+def agrupar_rotulos(
+    rotulos: list[tuple[str, Ponto]], escala: float
+) -> list[tuple[str, list[Ponto]]]:
+    """
+    Junta os <text> que formam um mesmo rótulo. Prancha do Commons costuma quebrar
+    "Anterior cruciate ligament" em três <text> empilhados; sem juntar, o
+    pareamento com a linha-guia pega só um fragmento.
+
+    Agrupa por ligação simples (single-linkage) com limiar proporcional ao
+    tamanho da prancha.
+    """
+    limiar = escala * 0.045
+    grupos: list[dict] = []
+    for txt, p in rotulos:
+        alvo = None
+        for g in grupos:
+            if any(math.dist(p, q) <= limiar for q in g["pts"]):
+                alvo = g
+                break
+        if alvo is None:
+            grupos.append({"itens": [(txt, p)], "pts": [p]})
+        else:
+            alvo["itens"].append((txt, p))
+            alvo["pts"].append(p)
+
+    # funde grupos que encostaram entre si depois de crescer
+    mudou = True
+    while mudou:
+        mudou = False
+        for i in range(len(grupos)):
+            for j in range(i + 1, len(grupos)):
+                if any(
+                    math.dist(a, b) <= limiar for a in grupos[i]["pts"] for b in grupos[j]["pts"]
+                ):
+                    grupos[i]["itens"] += grupos[j]["itens"]
+                    grupos[i]["pts"] += grupos[j]["pts"]
+                    del grupos[j]
+                    mudou = True
+                    break
+            if mudou:
+                break
+
+    saida = []
+    for g in grupos:
+        itens = sorted(g["itens"], key=lambda it: (round(it[1][1], 1), it[1][0]))
+        # dedup preservando ordem (arquivos multilíngues repetem a variante inglesa)
+        vistos = set()
+        partes = []
+        for txt, _ in itens:
+            if txt not in vistos:
+                vistos.add(txt)
+                partes.append(txt)
+        saida.append((" ".join(partes), g["pts"]))
+    return saida
+
+
 def resolver_hotspots(coleta: dict) -> list[tuple[str, Ponto]]:
     """
-    Para cada linha-guia: a ponta DE DENTRO do desenho é o hotspot; a ponta de
-    fora aponta para o rótulo. Devolve [(rótulo inglês, hotspot)].
+    Para cada linha-guia devolve (rótulo inglês, hotspot).
+
+    Duas decisões que precisam ser robustas:
+
+    - qual ponta é o hotspot: é a MAIS LONGE de qualquer rótulo. A linha-guia
+      nasce ao lado do próprio texto e termina na estrutura, então "distância ao
+      texto mais próximo" separa as pontas bem melhor que "distância ao centro"
+      (que falha quando os rótulos ficam nos dois lados da prancha, como no joelho).
+
+    - guias duplicadas: muitas pranchas desenham a linha duas vezes (contorno
+      escuro + preenchimento vermelho). Hotspots quase coincidentes são o mesmo
+      alvo, então colapsam num só.
     """
     bb = coleta["bb_desenho"]
     if not bb:
         raise RuntimeError("não foi possível determinar a área do desenho")
-    centro = ((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2)
+    if not coleta["rotulos"]:
+        raise RuntimeError("nenhum rótulo em inglês encontrado na prancha")
 
-    saida: list[tuple[str, Ponto]] = []
+    escala = max(bb[2] - bb[0], bb[3] - bb[1])
+    grupos = agrupar_rotulos(coleta["rotulos"], escala)
+
+    def perto_de_rotulo(p: Ponto) -> float:
+        return min(math.dist(p, q) for _, pts in grupos for q in pts)
+
+    brutos: list[tuple[str, Ponto]] = []
     for a, b in coleta["guias"]:
-        dentro, fora = (a, b) if math.dist(a, centro) < math.dist(b, centro) else (b, a)
-        if not coleta["rotulos"]:
-            raise RuntimeError("nenhum rótulo em inglês encontrado na prancha")
-        rotulo, _ = min(coleta["rotulos"], key=lambda r: math.dist(r[1], fora))
-        saida.append((rotulo, dentro))
-    return saida
+        da, db = perto_de_rotulo(a), perto_de_rotulo(b)
+        hotspot, junto_ao_texto = (a, b) if da > db else (b, a)
+        rotulo, _ = min(
+            grupos, key=lambda g: min(math.dist(junto_ao_texto, q) for q in g[1])
+        )
+        brutos.append((rotulo, hotspot))
+
+    # colapsa guias duplicadas: mesmo rótulo e hotspots praticamente no mesmo ponto
+    tolerancia = escala * 0.02
+    final: list[tuple[str, Ponto]] = []
+    for rotulo, p in brutos:
+        gemeo = next(
+            (
+                i
+                for i, (r, q) in enumerate(final)
+                if r == rotulo and math.dist(p, q) <= tolerancia
+            ),
+            None,
+        )
+        if gemeo is None:
+            final.append((rotulo, p))
+        else:
+            # média das duplicatas, para cair no meio do traço
+            r, q = final[gemeo]
+            final[gemeo] = (r, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2))
+    return final
 
 
 # --- limpeza do SVG -----------------------------------------------------------
 
-DESCARTAR = {"text", "switch", "title", "desc", "metadata", "marker", "foreignObject"}
+DESCARTAR = {
+    "text",
+    "switch",
+    "title",
+    "desc",
+    "metadata",
+    "marker",
+    "foreignObject",
+    # o CSS é embutido nos elementos antes de descartar o <style>, porque o
+    # SvgXml do react-native-svg não aplica folha de estilo
+    "style",
+}
 
 
 def fora_do_recorte(el, m: Matriz, recorte: tuple[float, float, float, float]) -> bool:
@@ -270,13 +437,29 @@ def limpar(root, recorte: tuple[float, float, float, float]) -> None:
     a geometria que ficou fora do recorte. Sem isso os ossos do pé continuariam
     no arquivo, invisíveis, pesando no bundle e no tempo de render.
     """
-    # 1) o que sai por natureza (texto, vermelho, metadado)
+    css = coletar_css(root)
+
+    # 0) CSS vira atributo, senão o estilo se perde ao remover o <style>
+    for el, _m, _pai, _t in caminhar(root, css=css):
+        for prop, valor in css_do_elemento(el, css).items():
+            if prop in ("fill", "stroke", "stroke-width", "opacity", "fill-rule") and (
+                el.get(prop) is None
+            ):
+                el.set(prop, valor)
+
+    # 1) o que sai por natureza (texto, metadado) e o vermelho de marcação —
+    #    este último precisa da tinta efetiva, então usa a travessia com contexto
+    vermelhos = {
+        id(el)
+        for el, _m, _pai, tinta in caminhar(root, css=css)
+        if tag_de(el) in TAGS_GEOMETRIA and eh_vermelho_el(el, tinta)
+    }
     for pai in list(root.iter()):
         for filho in list(pai):
             t = tag_de(filho)
             if t in DESCARTAR:
                 pai.remove(filho)
-            elif t in TAGS_GEOMETRIA and eh_vermelho_el(filho):
+            elif id(filho) in vermelhos:
                 pai.remove(filho)
             elif not isinstance(filho.tag, str):  # comentários / PI
                 pai.remove(filho)
@@ -284,7 +467,7 @@ def limpar(root, recorte: tuple[float, float, float, float]) -> None:
     # 2) o que sai por estar fora do enquadramento (precisa do transform do pai,
     #    então percorre de novo já com a árvore limpa)
     descartar = []
-    for el, m, pai in caminhar(root):
+    for el, m, pai, _tinta in caminhar(root, css=css):
         if pai is None or tag_de(el) not in TAGS_GEOMETRIA:
             continue
         if fora_do_recorte(el, m, recorte):
@@ -423,7 +606,11 @@ def processar(cfg: dict, inspecionar: bool) -> dict | None:
     )
     if ov:
         print(f"  recorte ajustado: {tuple(round(v, 1) for v in bb)}")
+    # só os rótulos que o catálogo usa precisam sobreviver ao enquadramento;
+    # pranchas com painel de detalhe têm hotspots que a gente descarta de propósito
     for rotulo, (px, py) in hotspots:
+        if rotulo not in cfg["alvos"]:
+            continue
         if not (bb[0] <= px <= bb[2] and bb[1] <= py <= bb[3]):
             raise RuntimeError(
                 f'alvo "{rotulo}" em ({px:.1f},{py:.1f}) caiu fora do recorte {bb}'

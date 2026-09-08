@@ -41,35 +41,61 @@
       "id": "ossos-mmss",
       "trilhaId": "anatomia",
       "titulo": "Ossos do membro superior",
-      "diagrama": "diag-mmss",
-      "aspecto": 0.667,
+      "diagrama": "prancha-mmss",
+      "aspecto": 0.4695,
       "alvos": [
+        {
+          "id": "clavicula",
+          "rotulo": "Clavícula",
+          "x": 0.4732,
+          "y": 0.0947
+        },
         {
           "id": "escapula",
           "rotulo": "Escápula",
-          "x": 0.66,
-          "y": 0.113
+          "x": 0.4184,
+          "y": 0.132
         },
         {
           "id": "umero",
           "rotulo": "Úmero",
-          "x": 0.495,
-          "y": 0.26
-        },
-        {
-          "id": "ulna",
-          "rotulo": "Ulna",
-          "x": 0.435,
-          "y": 0.633
+          "x": 0.2808,
+          "y": 0.2977
         },
         {
           "id": "radio",
           "rotulo": "Rádio",
-          "x": 0.575,
-          "y": 0.633
+          "x": 0.1851,
+          "y": 0.5763
+        },
+        {
+          "id": "ulna",
+          "rotulo": "Ulna",
+          "x": 0.1369,
+          "y": 0.6293
+        },
+        {
+          "id": "carpo",
+          "rotulo": "Carpo",
+          "x": 0.0764,
+          "y": 0.7818
+        },
+        {
+          "id": "metacarpo",
+          "rotulo": "Metacarpo",
+          "x": 0.1597,
+          "y": 0.8349
+        },
+        {
+          "id": "falanges",
+          "rotulo": "Falanges",
+          "x": 0.1777,
+          "y": 0.8879
         }
       ],
-      "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+      "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+      "urlFonte": "https://commons.wikimedia.org/wiki/File:Human_arm_bones_diagram.svg",
+      "imagemCredito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público"
     },
     {
       "id": "joelho",

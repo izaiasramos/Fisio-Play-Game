@@ -242,9 +242,11 @@ def _canal(h: str) -> tuple[int, int, int] | None:
 
 def eh_vermelho(valor: str | None) -> bool:
     """
-    True para vermelhos "de marcação" (linha-guia e bolinha dos rótulos).
-    Aceita variações tipo #FF0303/#FF0707 que os arquivos do Commons usam,
-    mas rejeita tons de pele/osso alaranjados (que têm verde/azul altos).
+    True só para o vermelho SATURADO de marcação (linha-guia e bolinha do rótulo).
+
+    O limite é apertado de propósito. Pranchas do Commons usam variações como
+    #FF0303/#FF0707 na marcação, mas também usam vermelho escuro (#CC0000) como
+    CONTORNO DE OSSO — se o teste fosse frouxo, apagaria anatomia de verdade.
     """
     if not valor:
         return False
@@ -255,7 +257,51 @@ def eh_vermelho(valor: str | None) -> bool:
     if rgb is None:
         return False
     r, g, b = rgb
-    return r >= 200 and g <= 60 and b <= 60
+    return r >= 230 and g <= 30 and b <= 30
+
+
+# --- CSS embutido (<style>) ---------------------------------------------------
+
+def coletar_css(root) -> dict[str, dict[str, str]]:
+    """
+    Regras de <style> num mapa {seletor: {prop: valor}}.
+
+    Suporta só os seletores simples que as pranchas usam (`text`, `.leader`,
+    `#id`) — o bastante, e nada além. Importa por dois motivos: a marcação
+    vermelha pode estar declarada por classe (e não por atributo), e o SvgXml do
+    react-native-svg não aplica CSS, então tudo precisa virar atributo depois.
+    """
+    regras: dict[str, dict[str, str]] = {}
+    for el in root.iter():
+        if el.tag.split("}")[-1] != "style":
+            continue
+        css = "".join(el.itertext())
+        css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+        for bloco in re.finditer(r"([^{}]+)\{([^{}]*)\}", css):
+            seletores = [s.strip() for s in bloco.group(1).split(",") if s.strip()]
+            decls: dict[str, str] = {}
+            for par in bloco.group(2).split(";"):
+                if ":" in par:
+                    k, v = par.split(":", 1)
+                    decls[k.strip().lower()] = v.strip()
+            for sel in seletores:
+                regras.setdefault(sel, {}).update(decls)
+    return regras
+
+
+def css_do_elemento(el, regras: dict[str, dict[str, str]]) -> dict[str, str]:
+    """Declarações que valem para o elemento (tag < .classe < #id)."""
+    saida: dict[str, str] = {}
+    tag = el.tag.split("}")[-1]
+    if tag in regras:
+        saida.update(regras[tag])
+    for classe in (el.get("class") or "").split():
+        if f".{classe}" in regras:
+            saida.update(regras[f".{classe}"])
+    ident = el.get("id")
+    if ident and f"#{ident}" in regras:
+        saida.update(regras[f"#{ident}"])
+    return saida
 
 
 def cores_do_elemento(el) -> list[str]:
