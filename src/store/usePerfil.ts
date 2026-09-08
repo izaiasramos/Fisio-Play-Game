@@ -108,11 +108,14 @@ export const usePerfil = create<PerfilStore>()(
       addMomento: async (uri) => {
         if (get().momentos.length >= MAX_MOMENTOS) return { ok: false, motivo: "erro" };
         const res = await salvarMomento(uri);
-        if (res.ok && res.id !== undefined) {
-          set((s) => ({ momentos: [...s.momentos, { id: res.id as string, uri }] }));
-          return { ok: true };
+        if (!res.ok) return res;
+        // Só entra na tela depois de gravado, para não exibir foto que
+        // desapareceria no próximo abrir do app.
+        if (res.id !== undefined) {
+          const id = res.id;
+          set((s) => ({ momentos: [...s.momentos, { id, uri }] }));
         }
-        return res.ok ? { ok: true } : res;
+        return { ok: true };
       },
 
       removeMomento: async (id) => {

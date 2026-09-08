@@ -57,8 +57,9 @@ const chaveMomento = (id: string) => `${PREFIXO}momento-${id}`;
 /** Chave do formato antigo, onde tudo (inclusive as fotos) era gravado junto. */
 export const CHAVE_PERFIL_LEGADO = "fisioplay-perfil";
 
-/** Uma foto-momento: id estável + a imagem em data URI. */
-export type Momento = { id: string; uri: string };
+import type { Momento } from "../data/schema";
+
+export type { Momento };
 
 /** Por que a gravação de uma foto falhou. */
 export type FalhaFoto = "grande" | "erro";
