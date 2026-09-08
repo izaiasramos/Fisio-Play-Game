@@ -87,7 +87,15 @@ verificador que roda sem UI:
 
 ```bash
 npx tsx scripts/verificar-quiz.ts    # idem para forca, memoria, colunas, vf, …
+npx tsx scripts/verificar-perfil.ts  # persistência das fotos do perfil
 ```
+
+As fotos do perfil (avatar e "momentos") são gravadas **uma por chave** do
+AsyncStorage, e não junto do resto do perfil: no Android cada registro é lido por
+um CursorWindow do SQLite, com teto de ~2 MB **por linha**, e avatar + 8 fotos em
+base64 na mesma chave passavam desse teto. A leitura falhava, o `persist` do
+zustand engolia o erro e o app abria com o perfil zerado — as fotos "sumiam" sem
+aviso. Detalhes em `src/lib/fotosPerfil.ts`.
 
 O banco de conteúdo tem um verificador próprio, que trava conteúdo duplicado:
 
