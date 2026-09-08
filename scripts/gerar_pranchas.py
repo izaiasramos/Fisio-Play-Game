@@ -560,14 +560,34 @@ def particionar_em_blocos(ys: list[float], linhas_y: list[float]) -> list[tuple[
             "prancha fora do padrão esperado"
         )
 
-    def custo(i: int, j: int, ly: float) -> float:
-        """Distância da linha-guia à faixa [ys[i], ys[j-1]]; 0 se cai dentro."""
-        topo, base = ys[i], ys[j - 1]
-        if topo <= ly <= base:
-            return 0.0
-        return min(abs(ly - topo), abs(ly - base))
+    # Entrelinha do rótulo: o menor vão da coluna. Vão muito maior que isso é
+    # separação ENTRE rótulos, não dentro de um.
+    vaos = [b - a for a, b in zip(ys, ys[1:]) if b - a > 0.01]
+    entrelinha = min(vaos) if vaos else 0.0
+    vao_maximo = entrelinha * 1.8
+
+    # A linha-guia não fica na linha de base do texto, e sim uns 6pt acima
+    # (na altura do meio das letras). Vale para rótulo de 1 ou de 2 linhas.
+    ACIMA_DA_BASE = 6.0
 
     INF = float("inf")
+
+    def custo(i: int, j: int, ly: float) -> float:
+        """
+        Quão bem a linha-guia `ly` casa com o bloco de textos ys[i:j].
+
+        Duas parcelas, e as duas são necessárias:
+
+        - alinhamento: a linha tem que bater com ALGUMA linha de base do bloco.
+        - coesão: bloco que atravessa um vão grande é proibido. Sem isso o DP
+          escolhe partições deslocadas em um texto ("muscles Femur", "tendon
+          Patella"), porque assim toda linha-guia cai dentro de algum bloco e o
+          custo de alinhamento sozinho fica igual ao da partição correta.
+        """
+        for a, b in zip(ys[i:j], ys[i + 1 : j]):
+            if b - a > vao_maximo:
+                return INF
+        return min(abs(ly - (b - ACIMA_DA_BASE)) for b in ys[i:j])
     # dp[b][i] = melhor custo usando os b primeiros blocos para os i primeiros textos
     dp = [[INF] * (n + 1) for _ in range(k + 1)]
     corte = [[-1] * (n + 1) for _ in range(k + 1)]
