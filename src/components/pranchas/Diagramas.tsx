@@ -17,6 +17,8 @@ import type { FC } from "react";
 import Svg, { Defs, G, LinearGradient, Rect, Stop, SvgXml } from "react-native-svg";
 import { colors } from "@/theme/tokens";
 import { SVG_PRANCHA_JOELHO } from "./svg/prancha-joelho";
+import { SVG_PRANCHA_JOELHO_LIGAMENTOS } from "./svg/prancha-joelho-ligamentos";
+import { SVG_PRANCHA_MAO } from "./svg/prancha-mao";
 import { SVG_PRANCHA_MMII } from "./svg/prancha-mmii";
 import { SVG_PRANCHA_MMSS } from "./svg/prancha-mmss";
 
@@ -97,7 +99,9 @@ export const DIAGRAMAS: Record<string, FC<DiagProps>> = {
   // pranchas realistas (domínio público, geradas por scripts/gerar_pranchas.py)
   "prancha-mmii": daString(SVG_PRANCHA_MMII),
   "prancha-mmss": daString(SVG_PRANCHA_MMSS),
+  "prancha-mao": daString(SVG_PRANCHA_MAO),
   "prancha-joelho": daString(SVG_PRANCHA_JOELHO),
+  "prancha-joelho-ligamentos": daString(SVG_PRANCHA_JOELHO_LIGAMENTOS),
   // esquemático autoral: só a coluna ainda usa (ver nota em gerar_pranchas.py
   // sobre a prancha de coluna do Commons ser um PNG de 1,26 MB embutido)
   "diag-coluna": DiagramaColuna,

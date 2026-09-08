@@ -111,20 +111,46 @@ PRANCHAS: list[dict] = [
         "titulo": "Articulação do joelho",
         "arquivo": "Knee diagram.svg",
         "diagrama": "prancha-joelho",
-        # Esta prancha tem 13 rótulos, vários deles ligamentos vizinhos (LCA/LCP,
-        # menisco, cartilagem) com linhas-guia curtas saindo dos DOIS lados. O
-        # pareamento automático texto↔linha erra nesses casos, e ligamento trocado
-        # num app de estudo ensina errado — pior que desenho feio.
-        #
-        # Então aqui entram só os 4 alvos cuja linha-guia é longa, única e
-        # inequívoca (os mesmos 4 do diagrama antigo, agora com desenho real).
-        # Os ligamentos ficam para uma rodada com revisão de fisioterapeuta,
-        # que o ROADMAP já prevê na Fase 6.
+        "pareamento": "colunas",
+        # Esta prancha tem 14 rótulos. Ossos ficam aqui; ligamentos, meniscos e
+        # tendões vão para "joelho-ligamentos", que recorta a articulação de perto.
+        # Motivo: os ligamentos se aglomeram no centro da articulação, então num
+        # recorte do joelho inteiro ficariam a poucos pixels um do outro.
         "alvos": {
             "Femur": {"id": "femur", "rotulo": "Fêmur"},
             "Patella": {"id": "patela", "rotulo": "Patela"},
             "Tibia": {"id": "tibia", "rotulo": "Tíbia"},
             "Fibula": {"id": "fibula", "rotulo": "Fíbula"},
+        },
+        "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+        "credito": "Mysid · Wikimedia Commons · domínio público",
+    },
+    {
+        "id": "joelho-ligamentos",
+        "trilhaId": "anatomia",
+        "titulo": "Ligamentos do joelho",
+        "arquivo": "Knee diagram.svg",
+        "diagrama": "prancha-joelho-ligamentos",
+        "pareamento": "colunas",
+        # Recorte fechado na articulação. É isso que torna os ligamentos jogáveis:
+        # no recorte do joelho inteiro (proporção 0,57) eles ficavam amontoados no
+        # meio; aqui a proporção fica ~1,3, a imagem usa a largura toda da tela e
+        # as estruturas se espalham.
+        "recorte": {"x0": 195, "x1": 585, "y0": 235, "y1": 525},
+        "alvos": {
+            # Os cruzados se cruzam no centro da articulação, são vizinhos por
+            # definição — daí o raio menor. O anel na tela acompanha o raio, então
+            # o jogador vê a mira que tem.
+            "Anterior cruciate ligament": {"id": "lca", "rotulo": "LCA", "raio": 0.06},
+            "Posterior cruciate ligament": {"id": "lcp", "rotulo": "LCP", "raio": 0.06},
+            "Medial collateral ligament": {"id": "lcm", "rotulo": "LCM", "raio": 0.06},
+            "Lateral collateral ligament": {"id": "lcl", "rotulo": "LCL", "raio": 0.06},
+            "Meniscus": {"id": "menisco", "rotulo": "Menisco", "raio": 0.06},
+            "Patellar tendon (Ligament)": {
+                "id": "tendao-patelar",
+                "rotulo": "Tendão patelar",
+                "raio": 0.06,
+            },
         },
         "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
         "credito": "Mysid · Wikimedia Commons · domínio público",
@@ -535,83 +561,68 @@ def _juntar(fragmentos: list[str]) -> str:
     return " ".join(saida)
 
 
-def particionar_em_blocos(ys: list[float], linhas_y: list[float]) -> list[tuple[int, int]]:
+# A linha-guia não sai da linha de base do texto, e sim uns 6pt acima dela, na
+# altura do meio das letras.
+ACIMA_DA_BASE = 6.0
+
+
+def blocos_por_ancora(
+    itens: list[tuple[str, Ponto]], linhas_y: list[float]
+) -> list[list[int]]:
     """
-    Divide os textos de uma coluna em exatamente len(linhas_y) blocos contíguos,
-    casando cada bloco com a linha-guia da sua altura.
+    Casa cada linha-guia com o rótulo dela, dentro de uma coluna de rótulos.
 
-    Por que não dá para agrupar por limiar vertical: no joelho o espaçamento
-    DENTRO de um rótulo ("Anterior cruciate" / "ligament" = 27,5) é praticamente
-    igual ao espaçamento ENTRE rótulos (29 a 34). Nenhum gap separa os dois casos.
+    O caminho óbvio — agrupar os <text> por proximidade vertical e depois casar
+    com a linha mais próxima — NÃO funciona nesta família de prancha: no joelho o
+    vão DENTRO de um rótulo ("Anterior cruciate" / "ligament" = 27,5) é quase
+    igual ao vão ENTRE rótulos (29 a 34). Nenhum limiar separa os dois casos, e
+    qualquer otimização global aceita de bom grado partições deslocadas em um
+    texto ("muscles Femur", "tendon Patella"), que custam o mesmo.
 
-    O que resolve é usar as próprias linhas-guia: elas dizem quantos rótulos a
-    coluna tem. Aí sobra um problema de partição bem-posto — achar os cortes que
-    minimizam a distância entre cada linha-guia e a faixa vertical do seu bloco —
-    resolvido exato por programação dinâmica.
+    O que resolve é notar que a linha-guia aponta para UMA linha de texto
+    específica, e essa correspondência é única: o alvo (y da linha + 6) cai a
+    menos de 7pt de uma única base de texto, enquanto a base vizinha fica a 23pt
+    ou mais. Então:
 
-    Devolve os intervalos [inicio, fim) de cada bloco, na ordem das linhas.
+      1. cada linha-guia elege sua ÂNCORA — a linha de texto que ela toca;
+      2. texto que não é âncora de ninguém é continuação de rótulo, e vai para a
+         âncora verticalmente mais próxima. Sempre acerta, porque a entrelinha do
+         rótulo é o menor vão da coluna.
+
+    Devolve, para cada linha-guia (na ordem recebida), os índices dos textos que
+    formam o rótulo dela.
     """
-    n, k = len(ys), len(linhas_y)
-    if k == 0 or n == 0:
-        return []
-    if k > n:
-        raise RuntimeError(
-            f"{k} linhas-guia para só {n} linhas de texto na coluna — "
-            "prancha fora do padrão esperado"
+    ys = [p[1] for _, p in itens]
+
+    ancora_da_linha: list[int] = []
+    for ly in linhas_y:
+        alvo = ly + ACIMA_DA_BASE
+        ordenados = sorted(range(len(ys)), key=lambda i: abs(ys[i] - alvo))
+        melhor = ordenados[0]
+        # ambiguidade de verdade é ter dois candidatos a distâncias parecidas;
+        # texto na MESMA altura (prancha multilíngue) não conta
+        for outro in ordenados[1:]:
+            if abs(ys[outro] - ys[melhor]) < 0.01:
+                continue
+            if abs(ys[outro] - alvo) - abs(ys[melhor] - alvo) < 5.0:
+                print(
+                    f"  ⚠  linha-guia em y={ly:.1f} fica entre dois rótulos "
+                    f"(y={ys[melhor]:.1f} e y={ys[outro]:.1f}) — confira no overlay"
+                )
+            break
+        ancora_da_linha.append(melhor)
+
+    grupos: list[list[int]] = [[a] for a in ancora_da_linha]
+    ancoras = set(ancora_da_linha)
+    for i in range(len(itens)):
+        if i in ancoras:
+            continue
+        j = min(
+            range(len(ancora_da_linha)),
+            key=lambda k: abs(ys[ancora_da_linha[k]] - ys[i]),
         )
-
-    # Entrelinha do rótulo: o menor vão da coluna. Vão muito maior que isso é
-    # separação ENTRE rótulos, não dentro de um.
-    vaos = [b - a for a, b in zip(ys, ys[1:]) if b - a > 0.01]
-    entrelinha = min(vaos) if vaos else 0.0
-    vao_maximo = entrelinha * 1.8
-
-    # A linha-guia não fica na linha de base do texto, e sim uns 6pt acima
-    # (na altura do meio das letras). Vale para rótulo de 1 ou de 2 linhas.
-    ACIMA_DA_BASE = 6.0
-
-    INF = float("inf")
-
-    def custo(i: int, j: int, ly: float) -> float:
-        """
-        Quão bem a linha-guia `ly` casa com o bloco de textos ys[i:j].
-
-        Duas parcelas, e as duas são necessárias:
-
-        - alinhamento: a linha tem que bater com ALGUMA linha de base do bloco.
-        - coesão: bloco que atravessa um vão grande é proibido. Sem isso o DP
-          escolhe partições deslocadas em um texto ("muscles Femur", "tendon
-          Patella"), porque assim toda linha-guia cai dentro de algum bloco e o
-          custo de alinhamento sozinho fica igual ao da partição correta.
-        """
-        for a, b in zip(ys[i:j], ys[i + 1 : j]):
-            if b - a > vao_maximo:
-                return INF
-        return min(abs(ly - (b - ACIMA_DA_BASE)) for b in ys[i:j])
-    # dp[b][i] = melhor custo usando os b primeiros blocos para os i primeiros textos
-    dp = [[INF] * (n + 1) for _ in range(k + 1)]
-    corte = [[-1] * (n + 1) for _ in range(k + 1)]
-    dp[0][0] = 0.0
-    for b in range(1, k + 1):
-        for i in range(b, n - (k - b) + 1):
-            for j in range(b - 1, i):
-                if dp[b - 1][j] == INF:
-                    continue
-                c = dp[b - 1][j] + custo(j, i, linhas_y[b - 1])
-                if c < dp[b][i]:
-                    dp[b][i] = c
-                    corte[b][i] = j
-    if dp[k][n] == INF:
-        raise RuntimeError("não foi possível particionar os rótulos da coluna")
-
-    limites: list[tuple[int, int]] = []
-    i = n
-    for b in range(k, 0, -1):
-        j = corte[b][i]
-        limites.append((j, i))
-        i = j
-    limites.reverse()
-    return limites
+        grupos[j].append(i)
+    return [sorted(g, key=lambda i: (ys[i], i)) for g in grupos]
 
 
 def hotspots_por_coluna(coleta: dict) -> list[tuple[str, Ponto]]:
@@ -659,11 +670,9 @@ def hotspots_por_coluna(coleta: dict) -> list[tuple[str, Ponto]]:
         if not da_coluna:
             continue
         itens = por_coluna[cx]
-        ys = [p[1] for _, p in itens]
-        blocos = particionar_em_blocos(ys, [ln["y"] for ln in da_coluna])
-        for ln, (ini, fim) in zip(da_coluna, blocos):
-            texto = _juntar([t for t, _ in itens[ini:fim]])
-            saida.append((texto, ln["hotspot"]))
+        grupos = blocos_por_ancora(itens, [ln["y"] for ln in da_coluna])
+        for ln, idxs in zip(da_coluna, grupos):
+            saida.append((_juntar([itens[i][0] for i in idxs]), ln["hotspot"]))
 
     # cada rótulo deveria ter exatamente uma linha-guia
     vistos: dict[str, Ponto] = {}

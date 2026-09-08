@@ -91,20 +91,20 @@
         {
           "id": "femur",
           "rotulo": "Fêmur",
-          "x": 0.3023,
-          "y": 0.1489
+          "x": 0.2948,
+          "y": 0.1467
         },
         {
           "id": "patela",
           "rotulo": "Patela",
-          "x": 0.8294,
-          "y": 0.2693
+          "x": 0.8362,
+          "y": 0.2713
         },
         {
           "id": "fibula",
           "rotulo": "Fíbula",
-          "x": 0.2226,
-          "y": 0.8793
+          "x": 0.216,
+          "y": 0.8768
         },
         {
           "id": "tibia",
@@ -180,6 +180,60 @@
       "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
       "urlFonte": "https://commons.wikimedia.org/wiki/File:Human_arm_bones_diagram.svg",
       "imagemCredito": "LadyofHats (Mariana Ruiz Villarreal) · Wikimedia Commons · domínio público"
+    },
+    {
+      "id": "joelho-ligamentos",
+      "trilhaId": "anatomia",
+      "titulo": "Ligamentos do joelho",
+      "diagrama": "prancha-joelho-ligamentos",
+      "aspecto": 1.3272,
+      "alvos": [
+        {
+          "id": "lcm",
+          "rotulo": "LCM",
+          "x": 0.8715,
+          "y": 0.3843,
+          "raio": 0.06
+        },
+        {
+          "id": "lcp",
+          "rotulo": "LCP",
+          "x": 0.6007,
+          "y": 0.4306,
+          "raio": 0.06
+        },
+        {
+          "id": "menisco",
+          "rotulo": "Menisco",
+          "x": 0.8472,
+          "y": 0.5347,
+          "raio": 0.06
+        },
+        {
+          "id": "lca",
+          "rotulo": "LCA",
+          "x": 0.5434,
+          "y": 0.5942,
+          "raio": 0.06
+        },
+        {
+          "id": "tendao-patelar",
+          "rotulo": "Tendão patelar",
+          "x": 0.7675,
+          "y": 0.771,
+          "raio": 0.06
+        },
+        {
+          "id": "lcl",
+          "rotulo": "LCL",
+          "x": 0.1673,
+          "y": 0.809,
+          "raio": 0.06
+        }
+      ],
+      "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+      "urlFonte": "https://commons.wikimedia.org/wiki/File:Knee_diagram.svg",
+      "imagemCredito": "Mysid · Wikimedia Commons · domínio público"
     }
   ]
 }
