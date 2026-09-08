@@ -97,6 +97,15 @@ base64 na mesma chave passavam desse teto. A leitura falhava, o `persist` do
 zustand engolia o erro e o app abria com o perfil zerado — as fotos "sumiam" sem
 aviso. Detalhes em `src/lib/fotosPerfil.ts`.
 
+Antes de gravar, a foto é reduzida para no máximo 1024 px no maior lado e
+comprimida (`expo-image-manipulator`, regras em `src/lib/reduzirFoto.ts`), então
+o orçamento por foto quase nunca é atingido.
+
+> ⚠️ `expo-image-manipulator` é **módulo nativo**: depois de instalá-lo é preciso
+> gerar um build novo (`eas build`, ou `npx expo run:android`/`run:ios` no
+> desenvolvimento). Recarregar o JS num build antigo não basta — o módulo não
+> existe lá e a escolha de foto vai falhar.
+
 O banco de conteúdo tem um verificador próprio, que trava conteúdo duplicado:
 
 ```bash

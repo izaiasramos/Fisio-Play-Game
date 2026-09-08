@@ -5,15 +5,37 @@
       "id": "ossos-mmii",
       "trilhaId": "anatomia",
       "titulo": "Ossos do membro inferior",
-      "diagrama": "diag-mmii",
-      "aspecto": 0.667,
+      "diagrama": "prancha-mmii",
+      "aspecto": 0.335,
       "alvos": [
-        { "id": "femur", "rotulo": "Fêmur", "x": 0.52, "y": 0.233 },
-        { "id": "patela", "rotulo": "Patela", "x": 0.5, "y": 0.467 },
-        { "id": "tibia", "rotulo": "Tíbia", "x": 0.465, "y": 0.72 },
-        { "id": "fibula", "rotulo": "Fíbula", "x": 0.585, "y": 0.713 }
+        {
+          "id": "femur",
+          "rotulo": "Fêmur",
+          "x": 0.2428,
+          "y": 0.3516
+        },
+        {
+          "id": "patela",
+          "rotulo": "Patela",
+          "x": 0.3213,
+          "y": 0.5506
+        },
+        {
+          "id": "tibia",
+          "rotulo": "Tíbia",
+          "x": 0.3661,
+          "y": 0.6576
+        },
+        {
+          "id": "fibula",
+          "rotulo": "Fíbula",
+          "x": 0.2989,
+          "y": 0.7327
+        }
       ],
-      "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
+      "fonte": "Wikimedia Commons — domínio público (rótulos removidos)",
+      "urlFonte": "https://commons.wikimedia.org/wiki/File:Human_leg_bones_labeled.svg",
+      "imagemCredito": "Jecowa · Wikimedia Commons · domínio público"
     },
     {
       "id": "ossos-mmss",
@@ -22,10 +44,30 @@
       "diagrama": "diag-mmss",
       "aspecto": 0.667,
       "alvos": [
-        { "id": "escapula", "rotulo": "Escápula", "x": 0.66, "y": 0.113 },
-        { "id": "umero", "rotulo": "Úmero", "x": 0.495, "y": 0.26 },
-        { "id": "ulna", "rotulo": "Ulna", "x": 0.435, "y": 0.633 },
-        { "id": "radio", "rotulo": "Rádio", "x": 0.575, "y": 0.633 }
+        {
+          "id": "escapula",
+          "rotulo": "Escápula",
+          "x": 0.66,
+          "y": 0.113
+        },
+        {
+          "id": "umero",
+          "rotulo": "Úmero",
+          "x": 0.495,
+          "y": 0.26
+        },
+        {
+          "id": "ulna",
+          "rotulo": "Ulna",
+          "x": 0.435,
+          "y": 0.633
+        },
+        {
+          "id": "radio",
+          "rotulo": "Rádio",
+          "x": 0.575,
+          "y": 0.633
+        }
       ],
       "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
     },
@@ -36,10 +78,30 @@
       "diagrama": "diag-joelho",
       "aspecto": 0.667,
       "alvos": [
-        { "id": "femur", "rotulo": "Fêmur", "x": 0.5, "y": 0.187 },
-        { "id": "patela", "rotulo": "Patela", "x": 0.5, "y": 0.307 },
-        { "id": "tibia", "rotulo": "Tíbia", "x": 0.46, "y": 0.533 },
-        { "id": "fibula", "rotulo": "Fíbula", "x": 0.665, "y": 0.633 }
+        {
+          "id": "femur",
+          "rotulo": "Fêmur",
+          "x": 0.5,
+          "y": 0.187
+        },
+        {
+          "id": "patela",
+          "rotulo": "Patela",
+          "x": 0.5,
+          "y": 0.307
+        },
+        {
+          "id": "tibia",
+          "rotulo": "Tíbia",
+          "x": 0.46,
+          "y": 0.533
+        },
+        {
+          "id": "fibula",
+          "rotulo": "Fíbula",
+          "x": 0.665,
+          "y": 0.633
+        }
       ],
       "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
     },
@@ -50,10 +112,30 @@
       "diagrama": "diag-coluna",
       "aspecto": 0.667,
       "alvos": [
-        { "id": "cervical", "rotulo": "Cervical", "x": 0.465, "y": 0.148 },
-        { "id": "toracica", "rotulo": "Torácica", "x": 0.585, "y": 0.392 },
-        { "id": "lombar", "rotulo": "Lombar", "x": 0.44, "y": 0.66 },
-        { "id": "sacro", "rotulo": "Sacro", "x": 0.42, "y": 0.823 }
+        {
+          "id": "cervical",
+          "rotulo": "Cervical",
+          "x": 0.465,
+          "y": 0.148
+        },
+        {
+          "id": "toracica",
+          "rotulo": "Torácica",
+          "x": 0.585,
+          "y": 0.392
+        },
+        {
+          "id": "lombar",
+          "rotulo": "Lombar",
+          "x": 0.44,
+          "y": 0.66
+        },
+        {
+          "id": "sacro",
+          "rotulo": "Sacro",
+          "x": 0.42,
+          "y": 0.823
+        }
       ],
       "fonte": "Diagrama original FisioPlay (CC BY 4.0)"
     }

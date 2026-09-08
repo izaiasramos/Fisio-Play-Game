@@ -36,6 +36,12 @@
       remote` + `autoIncrement`); nada a fazer manualmente.
 - [ ] **Build de produção**: AAB (Android) e IPA (iOS) via `eas build`.
 - [ ] **Testar o build em device real** (Android + iPhone) — Expo Go NÃO serve (SDK 57).
+- [ ] ⚠️ **Módulo nativo novo**: `expo-image-manipulator ~57.0.16` entrou para reduzir as
+      fotos do perfil antes de gravar. Não tem config plugin (não vai no array `plugins`
+      do `app.json`, é autolinkado), mas **exige build novo** — build/dev client antigo
+      não tem o módulo e a escolha de foto falha nele.
+- [ ] **Testar no device**: inserir avatar + fotos da torcida, **fechar e reabrir o app**,
+      confirmar que as fotos continuam lá. Era o bug do perfil zerando (ver README).
 - [ ] Checar **60fps** das animações em aparelho real (Reanimated/Moti).
 
 ## 🟡 Contas e assets de loja
