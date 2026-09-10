@@ -7,6 +7,7 @@ const TABULEIROS: TabuleiroCorpo[] = (
 ).tabuleiros;
 
 const SISTEMAS = ["ossos", "veias", "nervos", "orgaos"] as const;
+const VISTAS = ["anterior", "lateral", "posterior", "medial"] as const;
 
 export type ResultadoTabuleiros =
   | { ok: true; tabuleiros: TabuleiroCorpo[] }
@@ -58,6 +59,12 @@ export function validarTabuleiros(
     if (t.urlFonte !== undefined && !/^https?:\/\//.test(t.urlFonte)) {
       erros.push(`${tag}.urlFonte, se presente, deve ser URL http(s).`);
     }
+    if (t.vista !== undefined && !VISTAS.includes(t.vista)) {
+      erros.push(`${tag}.vista, se presente, deve ser uma de ${VISTAS.join(", ")}.`);
+    }
+    if (t.regiaoId !== undefined && !ehString(t.regiaoId)) {
+      erros.push(`${tag}.regiaoId, se presente, deve ser string não vazia.`);
+    }
 
     if (!Array.isArray(t.pecas) || t.pecas.length < 2) {
       erros.push(`${tag}.pecas deve ter ao menos 2 peças.`);
@@ -103,13 +110,39 @@ export function validarTabuleiros(
     }
   });
 
+  // Duas vistas iguais na mesma região tornariam o giro ambíguo: as setinhas
+  // ordenam por vista, então "lateral" repetida deixaria uma das duas
+  // inalcançável.
+  const vistaPorRegiao = new Map<string, Set<string>>();
+  for (const t of raw) {
+    const regiao = t.regiaoId ?? t.id;
+    const vista = t.vista ?? "anterior";
+    const jaVistas = vistaPorRegiao.get(regiao) ?? new Set<string>();
+    if (jaVistas.has(vista)) {
+      erros.push(`região "${regiao}" tem duas vistas "${vista}" (uma ficaria inalcançável).`);
+    }
+    jaVistas.add(vista);
+    vistaPorRegiao.set(regiao, jaVistas);
+  }
+
   if (erros.length) return { ok: false, erros };
   return { ok: true, tabuleiros: raw as TabuleiroCorpo[] };
 }
 
+/**
+ * Validação memoizada. Os dados são um JSON estático embutido no bundle: o
+ * resultado nunca muda em runtime, e revalidar tudo em cada `listarTabuleiros`
+ * custava um O(peças²) dentro do render da tela da trilha.
+ */
+let cache: ResultadoTabuleiros | null = null;
+function validado(): ResultadoTabuleiros {
+  if (cache === null) cache = validarTabuleiros(TABULEIROS);
+  return cache;
+}
+
 /** Tabuleiros de uma trilha, já em ordem de progressão. */
 export function listarTabuleiros(trilhaId: string): TabuleiroCorpo[] {
-  const res = validarTabuleiros(TABULEIROS);
+  const res = validado();
   if (!res.ok) return [];
   return res.tabuleiros
     .filter((t) => t.trilhaId === trilhaId)
@@ -123,7 +156,7 @@ export function temTabuleiros(trilhaId: string): boolean {
 
 /** Carrega um tabuleiro por id; lança se desconhecido ou inválido. */
 export function carregarTabuleiro(id: string): TabuleiroCorpo {
-  const res = validarTabuleiros(TABULEIROS);
+  const res = validado();
   if (!res.ok) {
     throw new Error(`Tabuleiros inválidos:\n- ${res.erros.join("\n- ")}`);
   }
@@ -134,7 +167,7 @@ export function carregarTabuleiro(id: string): TabuleiroCorpo {
 
 /** Todos os tabuleiros válidos (qualquer trilha), em ordem de progressão. */
 export function todosTabuleiros(): TabuleiroCorpo[] {
-  const res = validarTabuleiros(TABULEIROS);
+  const res = validado();
   if (!res.ok) return [];
   return res.tabuleiros.slice().sort((a, b) => a.ordem - b.ordem);
 }

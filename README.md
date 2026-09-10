@@ -108,6 +108,33 @@ silêncio. E ele usa `pontos_do_path(..., achatar_curvas=True)`, porque a
 aproximação por pontos de controle — boa para recortar prancha — superestimaria a
 peça e o encaixe sairia torto.
 
+Uma regra de design desse jogo: **o nome do osso aparece na peça desde a bandeja,
+de graça**. O objetivo de estudo é a associação nome↔lugar ("onde fica a
+fíbula?"), não identificar a forma solta ("que osso é esse risquinho?") — que é
+adivinhação e não ensina. Por isso as dicas são só duas (`Onde?` acende o lugar,
+`Encaixar` resolve) e o acerto imprime o nome na altura exata em que a peça
+entrou. As regiões concluídas ficam em `useProgresso.montarConcluidas`, o que faz
+o jogo reabrir na primeira região pendente em vez de sempre na primeira do banco.
+
+O tabuleiro tem **zoom** (pinça, dois dedos para passear, duplo-toque que aproxima
+no ponto tocado, e botões `−/+/⟲`). A matemática vive em `Lente`, em
+`src/games/montar.ts`: a moldura nunca é transformada — é ela que serve de régua —
+e o código desfaz a lente por conta própria, porque medir através de um `transform`
+dá resultado diferente em cada plataforma. Zoom é **só visão**: o encaixe continua
+em frações do tabuleiro, então ampliar 3× triplica a folga em pixels sem afrouxar
+a exigência anatômica.
+
+Girar a região em 360º é feito por **vistas** (`vista` + `regiaoId` no schema), não
+por 3D: a mesma região aparece em até 4 tabuleiros 2D — anterior, lateral,
+posterior, medial — e as setinhas `◀ ▶` (ou o swipe horizontal) giram entre eles
+ciclicamente, sempre **dentro da mesma região**. Trocar de região é intenção
+separada, no `região X de Y ⇄` do HUD. Dentro de uma região o giro é livre; a
+progressão sequencial é por região, e uma região só fecha quando todas as suas
+vistas foram montadas. Hoje cada região tem ângulo único, então as setinhas ficam
+apagadas — de propósito: fallback que muda o significado do gesto ensina errado.
+O porquê de não ser 3D de verdade, o levantamento de fontes no Commons e o caminho
+do BodyParts3D estão em `JOGOS-FUTUROS.md` §6.
+
 As fotos do perfil (avatar e "momentos") são gravadas **uma por chave** do
 AsyncStorage, e não junto do resto do perfil: no Android cada registro é lido por
 um CursorWindow do SQLite, com teto de ~2 MB **por linha**, e avatar + 8 fotos em

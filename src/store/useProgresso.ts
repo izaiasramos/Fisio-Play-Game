@@ -8,6 +8,8 @@ type ProgressoStore = Progresso & {
   addPontos: (trilhaId: string, pontos: number) => void;
   /** Marca que o usuário jogou hoje e atualiza a ofensiva (streak). */
   registrarJogo: () => void;
+  /** Marca uma região de "Montar o corpo" como concluída (idempotente). */
+  concluirMontar: (trilhaId: string, regiaoId: string) => void;
   /** Zera todo o progresso. */
   reset: () => void;
 };
@@ -17,6 +19,7 @@ const estadoInicial: Progresso = {
   xp: 0,
   streakDias: 0,
   ultimoJogoISO: null,
+  montarConcluidas: {},
 };
 
 const diaISO = (d: Date) => d.toISOString().slice(0, 10);
@@ -51,12 +54,36 @@ export const useProgresso = create<ProgressoStore>()(
         }));
       },
 
+      concluirMontar: (trilhaId, regiaoId) =>
+        set((s) => {
+          const feitas = s.montarConcluidas[trilhaId] ?? [];
+          if (feitas.includes(regiaoId)) return s; // refazer não duplica
+          return {
+            montarConcluidas: {
+              ...s.montarConcluidas,
+              [trilhaId]: [...feitas, regiaoId],
+            },
+          };
+        }),
+
       reset: () => set({ ...estadoInicial }),
     }),
     {
       name: "fisioplay-progresso",
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
+      /**
+       * v1 não tinha `montarConcluidas`. Sem este migrate, quem já usava o app
+       * carregaria `undefined` na chave e o jogo quebraria ao ler as regiões
+       * concluídas.
+       */
+      migrate: (estado, versao) => {
+        const s = (estado ?? {}) as Partial<Progresso>;
+        if (versao < 2) {
+          return { ...s, montarConcluidas: s.montarConcluidas ?? {} } as Progresso;
+        }
+        return s as Progresso;
+      },
     }
   )
 );

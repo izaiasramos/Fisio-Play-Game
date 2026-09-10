@@ -52,7 +52,7 @@ const MONTAR_JOGO: Jogo = {
   rota: "/jogo/montar",
   icone: "🧍",
   nome: "Montar o corpo",
-  desc: "Encaixe osso por osso, região por região",
+  desc: "Leia o nome do osso e ponha no lugar dele",
   cor: "#FB923C",
 };
 

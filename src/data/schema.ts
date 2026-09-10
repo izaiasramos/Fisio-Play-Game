@@ -135,6 +135,12 @@ export type Progresso = {
   xp: number;
   streakDias: number;
   ultimoJogoISO: string | null;
+  /**
+   * Regiões do jogo "Montar o corpo" já concluídas, por trilha
+   * (`trilhaId` → ids de `TabuleiroCorpo`). É o que sustenta a progressão
+   * sequencial: sem isso, o jogo sempre reabre na primeira região.
+   */
+  montarConcluidas: Record<string, string[]>;
 };
 
 /** Um alvo (hotspot) numa prancha do jogo "Arrastar na anatomia". */
@@ -152,6 +158,9 @@ export type AlvoAnatomia = {
 
 /** Sistemas do corpo cobertos pelo jogo "Montar o corpo". */
 export type SistemaCorpo = "ossos" | "veias" | "nervos" | "orgaos";
+
+/** Ângulo de observação de uma região no jogo "Montar o corpo". */
+export type VistaCorpo = "anterior" | "lateral" | "posterior" | "medial";
 
 /**
  * Uma peça do jogo "Montar o corpo" — um osso (ou estrutura) isolado, que o
@@ -186,6 +195,23 @@ export type TabuleiroCorpo = {
   /** chave do módulo de SVGs das peças (ver components/pranchas/Pecas.ts) */
   modulo: string;
   lado?: "esquerdo" | "direito";
+  /**
+   * Ângulo de onde a região é vista. Ausente = `anterior`.
+   *
+   * Vistas são a resposta barata a "poder girar o corpo em 360º": em vez de um
+   * motor 3D, a mesma região aparece em 2 a 4 tabuleiros 2D e o jogador gira
+   * entre eles. Pedagogicamente é o que importa — saber em QUE vista cada
+   * estrutura aparece (a patela na anterior, a cabeça da fíbula na lateral).
+   */
+  vista?: VistaCorpo;
+  /**
+   * Região à qual este tabuleiro pertence. Ausente = o próprio `id`.
+   *
+   * Vistas da mesma região compartilham `regiaoId` e se distinguem por `vista`.
+   * A progressão sequencial é por REGIÃO: girar entre as vistas nunca é
+   * bloqueado, só passar para a região seguinte.
+   */
+  regiaoId?: string;
   /** proporção largura/altura do tabuleiro */
   aspecto: number;
   pecas: PecaCorpo[];

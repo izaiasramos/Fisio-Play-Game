@@ -41,6 +41,17 @@ const BATIDA = [0, 0, 0.08, -0.12, 0, 1, -0.4, 0, 0.22, 0.08, 0, 0];
 const FATORES = [...BATIDA, ...BATIDA, ...BATIDA];
 const DX = W / (FATORES.length - 1);
 
+// Cor do traçado conforme a saúde (1 = saudável, 0 = flatline).
+// PRECISA do diretivo "worklet": é chamada de dentro de useAnimatedProps/
+// useAnimatedStyle, que rodam na UI runtime. Sem ele, o Reanimated 4 a captura
+// como Remote Function e a chamada síncrona derruba o app
+// ("Tried to synchronously call a Remote Function"). No React Native Web o bug
+// é invisível, porque lá não existe UI runtime separada.
+function corSaude(v: number) {
+  "worklet";
+  return interpolateColor(v, [0, 0.5, 1], [colors.error, colors.warning, colors.accent]);
+}
+
 type Estado = "jogando" | "ganhou" | "perdeu";
 
 type Props = {
@@ -82,9 +93,6 @@ export function MonitorVital({ erros, maxErros, estado }: Props) {
       // som é reforço, nunca deve quebrar o jogo
     }
   }, [estado, beep]);
-
-  const corSaude = (v: number) =>
-    interpolateColor(v, [0, 0.5, 1], [colors.error, colors.warning, colors.accent]);
 
   const ondaProps = useAnimatedProps(() => {
     const amp = interpolate(saude.value, [0, 1], [1.5, 34]);
